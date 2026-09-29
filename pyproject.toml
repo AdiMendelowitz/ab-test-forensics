@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "abforensics"
+version = "0.1.0"
+description = "Reproducible case studies in how online experiments produce the wrong decision."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Adi Mendelowitz" }]
+keywords = ["ab-testing", "experimentation", "causal-inference", "statistics"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "scipy>=1.12",
+    "matplotlib>=3.8",
+    "pyyaml>=6.0",
+    "pyarrow>=16.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+    "pre-commit>=3.7",
+    "jupyter>=1.0",
+    "nbconvert>=7.16",
+]
+
+[tool.uv]
+required-version = ">=0.5"
+
+[project.scripts]
+abf = "abforensics.cli:main"
+
+[project.urls]
+Repository = "https://github.com/AdiMendelowitz/ab-test-forensics"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -m 'not slow'"
+markers = [
+    "slow: simulation-based operating-characteristic tests (run with `pytest -m slow`)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+extend-exclude = ["notes", "*.ipynb", "data", "results"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "W"]

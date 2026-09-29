@@ -1,0 +1,166 @@
+"""Result objects returned by every public function in abforensics.
+
+Design rules (see docs/design/case-01.md, section 11):
+
+* every result names the estimand it targets, or states that it is a diagnostic with none;
+* every result carries its assumptions and its warnings, so that nothing is hidden in a
+  docstring the caller never reads;
+* results are frozen: a result is evidence, not a mutable working object;
+* no result contains a ship / no-ship decision.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from dataclasses import dataclass, field
+from typing import Any
+
+
+@dataclass(frozen=True)
+class SRMResult:
+    """Outcome of a sample-ratio-mismatch check.
+
+    This is a diagnostic hypothesis test on unit counts. It has no estimand. A small
+    p-value is evidence that the observed counts are not compatible with the planned
+    allocation; it is not proof of bias, and it says nothing about effect size.
+    """
+
+    observed_counts: Mapping[str, int]
+    expected_counts: Mapping[str, float]
+    expected_allocation: Mapping[str, float]
+    chi2_stat: float
+    p_value: float
+    degrees_of_freedom: int
+    alpha: float
+    flag_srm: bool
+    level: str  # what the counts are: "assignment", "exposure", "analysis", ...
+    estimand: str = "none: diagnostic test on unit counts"
+    assumptions: tuple[str, ...] = (
+        "expected allocation is known and fixed for the whole period",
+        "each count is a number of independent units at the stated level",
+        "counts are complete for the level they describe",
+    )
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+    @property
+    def total(self) -> int:
+        return int(sum(self.observed_counts.values()))
+
+    def summary(self) -> str:
+        arms = ", ".join(
+            f"{arm}={self.observed_counts[arm]:,} (expected {self.expected_counts[arm]:,.0f})"
+            for arm in self.observed_counts
+        )
+        verdict = "MISMATCH" if self.flag_srm else "compatible"
+        return (
+            f"SRM check at {self.level} level: {verdict} with planned allocation. "
+            f"{arms}; chi2={self.chi2_stat:.2f}, df={self.degrees_of_freedom}, "
+            f"p={self.p_value:.3g}, alpha={self.alpha}."
+        )
+
+
+@dataclass(frozen=True)
+class ProportionDifferenceResult:
+    """Difference in two arm-level proportions with Wald uncertainty.
+
+    ``estimand`` and ``analysis_unit`` are supplied by the caller; the function has no way
+    to know whether the counts it was given are assigned users, exposed users or sessions,
+    and refuses to guess.
+    """
+
+    estimand: str
+    analysis_unit: str
+    population: str  # e.g. "assigned", "exposed"
+    rate_treatment: float
+    rate_control: float
+    n_treatment: int
+    n_control: int
+    absolute_difference: float
+    standard_error: float
+    confidence_interval: tuple[float, float]
+    relative_lift: float
+    relative_confidence_interval: tuple[float, float]
+    p_value: float
+    alpha: float
+    assumptions: tuple[str, ...] = (
+        "outcome is binary and observed once per unit",
+        "units are independent (no clustering, no interference)",
+        "arms were formed by random assignment of the units being compared",
+        "sample sizes are large enough for the normal approximation",
+    )
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+    def summary(self) -> str:
+        lo, hi = self.confidence_interval
+        rlo, rhi = self.relative_confidence_interval
+        return (
+            f"{self.population} population, {self.analysis_unit} level: "
+            f"treatment {self.rate_treatment:.4%} vs control {self.rate_control:.4%}; "
+            f"difference {self.absolute_difference:+.4%} "
+            f"[{lo:+.4%}, {hi:+.4%}], relative {self.relative_lift:+.2%} "
+            f"[{rlo:+.2%}, {rhi:+.2%}], p={self.p_value:.3g}."
+        )
+
+
+@dataclass(frozen=True)
+class InvariantResult:
+    """Per-metric balance checks between arms on a stated population.
+
+    ``table`` has one row per metric: kind (numeric or categorical), the per-arm summary,
+    the test statistic, p-value and flag. ``flagged`` lists the metrics whose p-value fell
+    below ``alpha``. This is a diagnostic; it has no estimand.
+    """
+
+    level: str
+    alpha: float
+    table: Any  # pandas.DataFrame; typed loosely to keep results.py free of pandas
+    flagged: tuple[str, ...]
+    n_by_arm: Mapping[str, int]
+    estimand: str = "none: diagnostic balance checks"
+    assumptions: tuple[str, ...] = (
+        "each metric is measured before, or independently of, treatment",
+        "units are independent within and across arms",
+        "alpha applies per metric; with k metrics the family-wise rate is up to k * alpha",
+    )
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+    @property
+    def any_flagged(self) -> bool:
+        return len(self.flagged) > 0
+
+
+@dataclass(frozen=True)
+class SegmentExposureResult:
+    """Exposure rate per arm within each segment, with the treatment-minus-control gap."""
+
+    treatment_arm: str
+    control_arm: str
+    segment_cols: tuple[str, ...]
+    table: Any  # pandas.DataFrame
+    overall_gap: float
+    flagged_segments: tuple[str, ...]
+    alpha: float
+    estimand: str = "none: diagnostic on exposure logging"
+    assumptions: tuple[str, ...] = (
+        "every assigned unit should produce an exposure event with probability independent of arm",
+        "segment columns are pre-treatment attributes",
+    )
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class ArrivalLagResult:
+    """Distribution of event arrival lag by arm and the share unavailable at analysis time."""
+
+    table: Any  # pandas.DataFrame, one row per arm
+    ks_statistic: float
+    ks_p_value: float
+    analysis_time: Any
+    differential: bool
+    alpha: float
+    estimand: str = "none: diagnostic on outcome-event completeness"
+    assumptions: tuple[str, ...] = (
+        "received_time is the moment the event became available to analysis",
+        "events not yet received are absent from the analysed outcome table",
+    )
+    warnings: tuple[str, ...] = field(default_factory=tuple)
