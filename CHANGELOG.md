@@ -18,4 +18,5 @@
 - Manifest regenerated so its embedded config carries the +10% refund margin (data checksums unchanged); a unit test now fails when the committed manifest and `config.yaml` disagree.
 - `.gitattributes` normalises text files to LF so outputs regenerated on Windows do not show as whole-file diffs.
 - `oc_meta.json` records the Python version and machine for each unit and, separately, for the run that assembled the tables (a cache-only rerun on another machine previously overwrote the single `python` field); keys are sorted and the OC CSVs and meta are written with LF line endings on every platform.
+- Case 02 design specification (`docs/design/case-02.md`, v1.0) written and reviewed before any Case 02 code: three estimands, a delete-one-user jackknife shared with later cases, sample size set against the decision margin; root README roadmap updated.
 - `requires-python` raised to 3.12 to match the documented support; root README CI versions corrected.
