@@ -1,0 +1,62 @@
+# Case 02: The metric that told two stories. Parameters of the real-control, simulated-treatment
+# experiment (docs/design/case-02.md v1.2; decision record v2, sections 8 and 9).
+# Every value here is logged to the manifest when data is generated.
+# Seed selection rule (spec section 6): the case seed is the first seed at or above
+# seed_search_start whose single run shows the story (naive and delta-method tests both reject
+# on E2, E1 lands in row 5 of the rule, the guardrail passes, assignment SRM passes). The seed
+# is written here once the generator exists; until then it is null.
+seed: null
+seed_search_start: 20261002
+
+base:
+  dataset: EB-NeRD small, train split (18 to 25 May 2023)
+  raw_dir: data/raw/ebnerd_small      # untracked; licence clauses 4.2 and 4.3 (spec section 6)
+  population_users: 15143
+  # md5 of each raw parquet file, written by `abf simulate case02` into the manifest so a
+  # reader can confirm identical bytes; never the data itself.
+
+design:
+  total_draws: 128200                 # arm sizes Binomial(128200, 0.5); 64,100 per arm expected
+  allocation: {control: 0.5, treatment: 0.5}
+  arms_drawn_independently: true
+  analysis_unit: draw_id              # clustering and resampling unit; random stream keyed by it
+  enrolment: calendar_week            # eligible at first logged page view; outcomes to week end
+  arrival_delay_hours: {min: 0, max: 36}
+  contrast_total_draws: 105000        # 52,500 per arm, sized on E1 alone (scenario "C at 52,500")
+
+treatment:
+  quality_tier: article_age_oldest_tercile   # spec section 6; totals proxy only in the contrast
+  suppression_delta: 0.15             # re-tuned on the base before the committed run (section 10)
+  click_lift_tau: 0.025               # scenarios C and D
+  never_remove_last_inview: true
+
+decision_rule:
+  interval: two_sided_95              # every bound is an end of the two-sided 95% interval
+  ship_if_lower_bound_above_relative: 0.005   # E1, clicks per eligible user (product input)
+  guardrails:
+    negative_feedback_max_increase_relative: 0.05   # must pass; simulated in both arms
+  sensitivity_reread_margin_relative: 0.03          # notebook re-read, no extra simulation
+
+guardrail_simulation:                 # v1.0 mechanism, labelled simulated (spec section 6)
+  per_impression_rate: 0.005
+  low_quality_multiplier: 3.0
+
+operating_characteristics:
+  seed: 20261003                      # distinct from the case seed
+  replicates: 5000                    # B per scenario A to D
+  bootstrap:
+    scenarios: [A, D]
+    replicates: 1000
+    resamples: 200
+    interval: normal
+  sweep_replicates: 1000
+  sweep_bootstrap: {resamples: 1000, interval: percentile}
+  sample_size_sweep_per_arm: [10000, 15143, 25000, 52500, 64100, 100000, 200000]
+  joint_ship_rate_check: {scenario: C, target: 0.80, tolerance: 0.025}
+  time_limit_minutes: 35              # estimate [D15]; reset to measured time x 1.25
+  heterogeneity_sigma_sweep: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]   # parametric generator, simulated
+  tail_dispersion_r_sweep: [0.25, 0.5, 1.0, 2.0, 4.0]         # parametric generator, simulated
+
+deferred:
+  large_variant_feasibility_check: 2026-10-31
+  real_guardrail_signal: next spec revision after `abf oc case02`
