@@ -164,3 +164,64 @@ class ArrivalLagResult:
         "events not yet received are absent from the analysed outcome table",
     )
     warnings: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class JackknifeResult:
+    """Delete-one-unit jackknife variance of a statistic of column totals.
+
+    Carries no interval and no decision: it is a variance estimate for the named estimand,
+    at the stated unit.
+    """
+
+    statistic_name: str
+    estimand: str
+    unit_col: str
+    n_units: int
+    estimate: float
+    variance: float
+    standard_error: float
+    assumptions: tuple[str, ...] = (
+        "units are independent; rows within a unit may be dependent",
+        "the statistic is a smooth function of column totals (the jackknife fails for "
+        "non-smooth statistics such as the median)",
+    )
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+    def summary(self) -> str:
+        return (
+            f"Jackknife over {self.n_units:,} {self.unit_col} units: {self.statistic_name} = "
+            f"{self.estimate:.6g}, SE {self.standard_error:.4g}."
+        )
+
+
+@dataclass(frozen=True)
+class BootstrapResult:
+    """Cluster bootstrap of a statistic of column totals, resampling whole units."""
+
+    statistic_name: str
+    estimand: str
+    unit_col: str
+    strata_col: str | None
+    n_units: int
+    estimate: float
+    standard_error: float
+    lower: float
+    upper: float
+    interval: str  # "percentile" or "normal"
+    alpha: float
+    resamples: int
+    seed: int
+    distribution: Any = field(repr=False, compare=False)
+    assumptions: tuple[str, ...] = (
+        "units are independent; rows within a unit may be dependent",
+        "resampling units with replacement mimics the sampling of units from the population",
+    )
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+    def summary(self) -> str:
+        return (
+            f"Cluster bootstrap over {self.n_units:,} {self.unit_col} units, {self.resamples:,} "
+            f"resamples (seed {self.seed}): {self.statistic_name} = {self.estimate:.6g}, "
+            f"{self.interval} {1 - self.alpha:.0%} interval [{self.lower:.6g}, {self.upper:.6g}]."
+        )
