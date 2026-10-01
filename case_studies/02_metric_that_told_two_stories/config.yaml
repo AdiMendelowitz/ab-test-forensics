@@ -1,5 +1,5 @@
 # Case 02: The metric that told two stories. Parameters of the real-control, simulated-treatment
-# experiment (docs/design/case-02.md v1.2; decision record v2, sections 8 and 9).
+# experiment (docs/design/case-02.md v1.4; decision record v2, sections 8 to 10).
 # Every value here is logged to the manifest when data is generated.
 # Seed selection rule (spec section 6): the case seed is the first seed at or above
 # seed_search_start whose single run shows the story (naive and delta-method tests both reject
@@ -29,6 +29,18 @@ treatment:
   suppression_delta: 0.15             # re-tuned on the base before the committed run (section 10)
   click_lift_tau: 0.025               # scenarios C and D
   never_remove_last_inview: true
+  mechanism_check:                    # spec section 6, A18; measured 30 September 2026 [D16]
+    verdict: pass
+    old_tier_share_lightest_decile: 0.167
+    old_tier_share_heaviest_decile: 0.385
+    old_tier_click_rate: 0.0444       # against E2 = 0.0906
+  quality_tier_validation:            # pre-set rule, kept unchanged (spec section 6)
+    subset: totals_window_closed_before_split
+    spearman_max: -0.3                # per-article median age against pageviews / inviews
+    tercile_min_share: 0.05
+    terciles_min: 2
+    status: structurally_uninformative   # subset all older than 168 h; old-tier cut 9.2 h
+    measured: {spearman: -0.126, articles: 1218, terciles_covered: 1}
 
 decision_rule:
   interval: two_sided_95              # every bound is an end of the two-sided 95% interval
@@ -40,22 +52,37 @@ decision_rule:
 guardrail_simulation:                 # v1.0 mechanism, labelled simulated (spec section 6)
   per_impression_rate: 0.005
   low_quality_multiplier: 3.0
+  heterogeneity_shape: 2.0            # g_i ~ Gamma(shape, mean 1) per population user (Adi, 1 Oct 2026)
+  population_seed: 20261001           # keys g_i; fixed so the truths do not change with the run seed
 
 operating_characteristics:
   seed: 20261003                      # distinct from the case seed
-  replicates: 5000                    # B per scenario A to D
+  workers: 2                          # both time limits are stated for two workers [D15]
+  random_streams: keyed_counter_based # by (seed, draw_id, use); never one Generator per draw [D15]
+  replicates: 2000                    # B per scenario; v1.2 set 5,000; re-budgeted (A20) [D14]
+  scenarios: [A, B, C, D, C_at_52500, D_leaked_tier]
+  leaked_tier:                        # spec section 6, scenario D rerun (Kaufman et al. 2012)
+    quality_tier: totals_pageviews_per_inview_bottom_tercile
+    without_totals: article_age_oldest_tercile
   bootstrap:
     scenarios: [A, D]
-    replicates: 1000
+    replicates: 500
     resamples: 200
     interval: normal
-  sweep_replicates: 1000
-  sweep_bootstrap: {resamples: 1000, interval: percentile}
-  sample_size_sweep_per_arm: [10000, 15143, 25000, 52500, 64100, 100000, 200000]
+    statistic: relative_lift          # one cluster_bootstrap call per replicate
   joint_ship_rate_check: {scenario: C, target: 0.80, tolerance: 0.025}
-  time_limit_minutes: 35              # estimate [D15]; reset to measured time x 1.25
-  heterogeneity_sigma_sweep: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]   # parametric generator, simulated
-  tail_dispersion_r_sweep: [0.25, 0.5, 1.0, 2.0, 4.0]         # parametric generator, simulated
+  time_limit_minutes: 35              # `abf oc case02`; projected 18.7, measured 1 Oct 2026 [D15]
+  sweeps:                             # `abf oc case02 --sweeps`
+    time_limit_minutes: 70            # projected 48.6, measured 1 Oct 2026 [D15]
+    replicates: 1000
+    bootstrap: {scenarios: [A], replicates_per_size: 200, resamples: 200, interval: normal}
+    wallclock_percentile_bootstrap: {replicates_per_size: 3, resamples: 1000, interval: percentile}
+    sample_size_per_arm: [10000, 15143, 25000, 52500, 64100, 100000, 200000]
+    heterogeneity_sigma: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]   # parametric generator, simulated
+    tail_dispersion_r: [0.25, 0.5, 1.0, 2.0, 4.0]         # parametric generator, simulated
+    heterogeneity_depth_off_point: {sigma: 0.0, depth_term: off}
+    tail_bootstrap: {r: [0.25, 0.5], replicates: 200, resamples: 200, interval: normal}
+    parametric_n_per_arm: 64100
 
 deferred:
   large_variant_feasibility_check: 2026-10-31

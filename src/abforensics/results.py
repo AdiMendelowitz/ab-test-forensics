@@ -225,3 +225,91 @@ class BootstrapResult:
             f"resamples (seed {self.seed}): {self.statistic_name} = {self.estimate:.6g}, "
             f"{self.interval} {1 - self.alpha:.0%} interval [{self.lower:.6g}, {self.upper:.6g}]."
         )
+
+
+@dataclass(frozen=True)
+class RatioOfSumsResult:
+    """A ratio of sums per arm (e.g. clicks per impression) and its between-arm contrasts.
+
+    The estimand is the ratio of expected totals, E[sum numerator] / E[sum denominator], per
+    arm: an impression-weighted rate, not the mean of per-unit rates. Uncertainty is computed
+    at the unit level named in ``unit_col``, never at the grain of the denominator's events.
+    """
+
+    estimand: str
+    numerator: str
+    denominator: str
+    unit_col: str
+    method: str  # "delta", "jackknife" or "bootstrap"
+    alpha: float
+    n_units_treatment: int
+    n_units_control: int
+    ratio_treatment: float
+    ratio_control: float
+    se_ratio_treatment: float
+    se_ratio_control: float
+    absolute_difference: float
+    standard_error: float
+    confidence_interval: tuple[float, float]
+    relative_lift: float
+    relative_confidence_interval: tuple[float, float]
+    p_value: float
+    resamples: int | None = None
+    seed: int | None = None
+    assumptions: tuple[str, ...] = (
+        "units are independent; events within a unit may be dependent",
+        "arms were formed by random assignment of the units",
+        "the ratio is a smooth function of totals and n is large enough for the normal "
+        "approximation (delta and jackknife) or for the bootstrap distribution",
+    )
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+    def summary(self) -> str:
+        lo, hi = self.confidence_interval
+        rlo, rhi = self.relative_confidence_interval
+        return (
+            f"sum({self.numerator}) / sum({self.denominator}) by {self.unit_col}, "
+            f"{self.method}: treatment {self.ratio_treatment:.5g} vs control "
+            f"{self.ratio_control:.5g}; difference {self.absolute_difference:+.5g} "
+            f"[{lo:+.5g}, {hi:+.5g}], relative {self.relative_lift:+.2%} "
+            f"[{rlo:+.2%}, {rhi:+.2%}], p={self.p_value:.3g}."
+        )
+
+
+@dataclass(frozen=True)
+class MeanDifferenceResult:
+    """Difference in two arm means (Welch) and the relative lift (delta method, log ratio)."""
+
+    estimand: str
+    analysis_unit: str
+    mean_treatment: float
+    mean_control: float
+    sd_treatment: float
+    sd_control: float
+    n_treatment: int
+    n_control: int
+    absolute_difference: float
+    standard_error: float
+    degrees_of_freedom: float
+    confidence_interval: tuple[float, float]
+    relative_lift: float
+    relative_confidence_interval: tuple[float, float]
+    p_value: float
+    alpha: float
+    assumptions: tuple[str, ...] = (
+        "units are independent within and across arms",
+        "the outcome has finite variance; with heavy tails the normal approximation needs "
+        "large n",
+        "arms were formed by random assignment of the units being compared",
+    )
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+    def summary(self) -> str:
+        lo, hi = self.confidence_interval
+        rlo, rhi = self.relative_confidence_interval
+        return (
+            f"{self.analysis_unit} means: treatment {self.mean_treatment:.5g} vs control "
+            f"{self.mean_control:.5g}; difference {self.absolute_difference:+.5g} "
+            f"[{lo:+.5g}, {hi:+.5g}] (Welch, df {self.degrees_of_freedom:,.0f}), relative "
+            f"{self.relative_lift:+.2%} [{rlo:+.2%}, {rhi:+.2%}], p={self.p_value:.3g}."
+        )
