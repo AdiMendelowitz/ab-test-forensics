@@ -40,6 +40,7 @@ carries aggregates only.
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 from collections.abc import Mapping
@@ -188,6 +189,24 @@ class RankingBase:
     iv_candidate: np.ndarray
     tier_cut_hours: float
     summary: Mapping[str, Any]
+    leaked_old_inviews: np.ndarray | None = None
+    leaked_candidates_clicked: np.ndarray | None = None
+    leaked_candidates_unclicked: np.ndarray | None = None
+
+    def with_tier(self, tier: str) -> "RankingBase":
+        """The same population with the low-quality tier set to "age" (default) or "leaked"."""
+        if tier == "age":
+            return self
+        if tier != "leaked":
+            raise ValueError(f"tier must be 'age' or 'leaked'; got {tier!r}")
+        if self.leaked_old_inviews is None:
+            raise ValueError("this base has no leaked tier")
+        return dataclasses.replace(
+            self,
+            old_inviews=self.leaked_old_inviews,
+            old_candidates_clicked=self.leaked_candidates_clicked,
+            old_candidates_unclicked=self.leaked_candidates_unclicked,
+        )
 
     @property
     def n_users(self) -> int:
@@ -218,6 +237,8 @@ def build_base(inviews: pd.DataFrame, users: pd.DataFrame, tier_cut_hours: float
     last[offsets[1:] - 1] = True
     click = iv["click"].to_numpy(dtype=bool)
     cand = old & ~last
+    leaked = iv["leaked_low"].to_numpy(dtype=bool) if "leaked_low" in iv.columns else old
+    leaked_cand = leaked & ~last
     code = np.repeat(np.arange(user_ids.size), m)
 
     def per_user(mask: np.ndarray) -> np.ndarray:
@@ -235,6 +256,7 @@ def build_base(inviews: pd.DataFrame, users: pd.DataFrame, tier_cut_hours: float
         "ctr_ratio_of_sums": float(click.sum() / uid.size),
         "user_rate_mean": float(np.mean(per_user(click) / m)),
         "old_tier_share": float(old.mean()),
+        "leaked_old_share": float(leaked.mean()),
         "unknown_age_share": float((~known).mean()),
         "tier_cut_hours": cut,
         **dict(summary or {}),
@@ -259,6 +281,9 @@ def build_base(inviews: pd.DataFrame, users: pd.DataFrame, tier_cut_hours: float
         iv_candidate=cand,
         tier_cut_hours=cut,
         summary=info,
+        leaked_old_inviews=per_user(leaked),
+        leaked_candidates_clicked=per_user(leaked_cand & click),
+        leaked_candidates_unclicked=per_user(leaked_cand & ~click),
     )
 
 
@@ -288,7 +313,7 @@ def load_base(raw_dir: Path | str) -> RankingBase:
     beh = pd.read_parquet(files["behaviors"], columns=[
         "impression_id", "impression_time", "article_ids_inview", "article_ids_clicked",
         "user_id", "device_type", "is_subscriber"])
-    art = pd.read_parquet(files["articles"], columns=["article_id", "published_time"])
+    art = pd.read_parquet(files["articles"], columns=["article_id", "published_time", "total_inviews", "total_pageviews"])
     hist = pd.read_parquet(files["history"], columns=["user_id", "article_id_fixed"])
     lengths = beh["article_ids_inview"].map(len).to_numpy()
     row = np.repeat(np.arange(len(beh)), lengths)
@@ -308,6 +333,13 @@ def load_base(raw_dir: Path | str) -> RankingBase:
     iv["click"] = iv["click"].eq(True)
     iv = iv.merge(art, on="article_id", how="left", validate="many_to_one")
     iv["age_hours"] = (iv["impression_time"] - iv["published_time"]).dt.total_seconds() / 3600.0
+    ratio = (iv["total_pageviews"] / iv["total_inviews"]).where(iv["total_inviews"] > 0)
+    has = ratio.notna().to_numpy()
+    age = iv["age_hours"].to_numpy(dtype=np.float64)
+    known = ~np.isnan(age)
+    age_cut = float(np.quantile(age[known], 2.0 / 3.0))
+    ratio_cut = float(np.quantile(ratio.to_numpy()[has], 1.0 / 3.0))
+    iv["leaked_low"] = np.where(has, ratio.to_numpy() <= ratio_cut, known & (age >= age_cut))
     first = beh.sort_values(["user_id", "impression_time", "impression_id"]).drop_duplicates("user_id")
     pre = hist.assign(n=hist["article_id_fixed"].map(len)).groupby("user_id")["n"].sum()
     users = pd.DataFrame({
@@ -316,8 +348,9 @@ def load_base(raw_dir: Path | str) -> RankingBase:
         "is_subscriber": first["is_subscriber"].to_numpy(dtype=bool),
     })
     users["pre_period_clicks_21d"] = users["user_id"].map(pre).fillna(0).astype(np.int64)
-    summary = {"source": "EB-NeRD small, train split", "raw_md5": {k: _md5(f) for k, f in files.items()}}
-    return build_base(iv.drop(columns=["row", "published_time"]), users, summary=summary)
+    summary = {"source": "EB-NeRD small, train split", "raw_md5": {k: _md5(f) for k, f in files.items()},
+               "leaked_ratio_cut": ratio_cut, "without_totals_share": float((~has).mean())}
+    return build_base(iv.drop(columns=["row", "published_time", "total_inviews", "total_pageviews"]), users, summary=summary)
 
 
 def make_synthetic_base(n_users: int = 300, seed: int = 1, mean_inviews: float = 40.0) -> RankingBase:
@@ -344,6 +377,8 @@ def make_synthetic_base(n_users: int = 300, seed: int = 1, mean_inviews: float =
                           "device_type": rng.integers(1, 4, n_users),
                           "is_subscriber": rng.random(n_users) < 0.1,
                           "pre_period_clicks_21d": rng.poisson(20, n_users)})
+    flip = rng.random(n) < 0.2
+    iv["leaked_low"] = np.where(np.isnan(age), False, age > 9.0) ^ flip
     return build_base(iv, users, summary={"source": "synthetic (tests only)"})
 
 
