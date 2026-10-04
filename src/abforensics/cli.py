@@ -7,12 +7,13 @@ from __future__ import annotations
 
 import argparse
 import sys
+import time
 from pathlib import Path
 
 import yaml
 
 COMMANDS = ("simulate", "run", "oc")
-CASES = {"case01": "01_lift_we_could_not_trust"}
+CASES = {"case01": "01_lift_we_could_not_trust", "case02": "02_metric_that_told_two_stories"}
 
 
 def repo_root() -> Path:
@@ -31,6 +32,8 @@ def load_config(root: Path, case: str) -> dict:
 
 
 def cmd_simulate(root: Path, case: str, seed: int | None) -> int:
+    if case == "case02":
+        return _cmd_simulate_case02(root, case, seed)
     from abforensics.simulation.checkout_incident import (
         simulate_checkout_experiment,
         write_case_data,
@@ -51,6 +54,8 @@ def cmd_simulate(root: Path, case: str, seed: int | None) -> int:
 
 def cmd_run(root: Path, case: str) -> int:
     """Execute the case notebook headless, in place, so the committed copy carries outputs."""
+    if case == "case02":
+        return _cmd_run_case02(root, case)
     import subprocess
 
     nb = root / "case_studies" / CASES[case] / "analysis.ipynb"
@@ -188,6 +193,8 @@ def cmd_oc(
     is checked between units, after at least one unit has been computed in the invocation, so
     every invocation makes progress and a run can overshoot the budget by one unit.
     """
+    if case == "case02":
+        return _cmd_oc_case02(root, case, replicates=replicates, sweep_replicates=sweep_replicates, seed=seed, jobs=jobs, max_seconds=max_seconds)
     import hashlib
     import json
     import os
@@ -365,6 +372,50 @@ def cmd_oc(
         json.dumps(meta, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n"
     )
     print(f"{case}: figure {fig_path.relative_to(root)}")
+    return 0
+
+
+def _cmd_simulate_case02(root, case, seed):
+    from abforensics.simulation import ranking_incident as ri
+
+    config = load_config(root, case)
+    if seed is None and config.get("seed") is None:
+        print("abf simulate case02: the case seed is not set yet; pass --seed", file=sys.stderr)
+        return 2
+    base = ri.load_base(root / config["base"]["raw_dir"])
+    data = ri.simulate_ranking_experiment(config, seed=seed, base=base)
+    manifest = ri.write_case_data(data, root / "data" / "generated" / case, root / "data" / "manifests" / f"{case}.json")
+    counts = ", ".join(f"{k}={v:,}" for k, v in manifest["row_counts"].items())
+    print(f"{case}: seed={manifest['seed']} wrote data/generated/{case}/ ({counts})")
+    print(f"manifest: data/manifests/{case}.json")
+    return 0
+
+
+def _cmd_run_case02(root, case):
+    print("abf run case02: the Case 02 notebook is not built yet", file=sys.stderr)
+    return 2
+
+
+def _cmd_oc_case02(root, case, *, replicates, sweep_replicates, seed, jobs, max_seconds):
+    t0 = time.perf_counter()
+    from abforensics.simulation import ranking_incident as ri
+    from abforensics.simulation.oc_case02 import run_oc_case02
+
+    if sweep_replicates is not None or max_seconds is not None:
+        print("abf oc case02: --sweep-replicates and --max-seconds are not supported yet", file=sys.stderr)
+        return 2
+    config = load_config(root, case)
+    oc = config["operating_characteristics"]
+    raw_dir = root / config["base"]["raw_dir"]
+    out_dir = root / "results" / "case02"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    meta = run_oc_case02(config, ri.load_base(raw_dir), replicates=int(replicates or oc["replicates"]), oc_seed=int(seed if seed is not None else oc["seed"]), workers=int(jobs or oc["workers"]), out_dir=out_dir, raw_dir=raw_dir)
+    total = time.perf_counter() - t0
+    limit = oc["time_limit_minutes"]
+    verdict = "PASS" if total <= 60 * limit else "FAIL"
+    print(f"abf oc case02: B={meta['replicates']}, workers={meta['workers']}, command wall-clock {total} s ({total/60} min), harness {meta['wall_clock_seconds']} s, against {limit} min: {verdict}")
+    for name in ("oc_truths.csv", "oc_scenarios.csv", "oc_rule.csv", "oc_meta.json"):
+        print(out_dir / name)
     return 0
 
 
