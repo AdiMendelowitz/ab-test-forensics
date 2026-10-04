@@ -1,5 +1,5 @@
 # Case 02: The metric that told two stories. Parameters of the real-control, simulated-treatment
-# experiment (docs/design/case-02.md v1.4; decision record v2, sections 8 to 10).
+# experiment (docs/design/case-02.md v1.5; decision record v2, sections 8 to 10).
 # Every value here is logged to the manifest when data is generated.
 # Seed selection rule (spec section 6): the case seed is the first seed at or above
 # seed_search_start whose single run shows the story (naive and delta-method tests both reject
@@ -16,7 +16,7 @@ base:
   # reader can confirm identical bytes; never the data itself.
 
 design:
-  total_draws: 128200                 # arm sizes Binomial(128200, 0.5); 64,100 per arm expected
+  total_draws: 115200                 # arm sizes Binomial(115200, 0.5); 57,600 per arm expected; re-sized 4 October 2026 from scenario C (decision record v2, section 10)
   allocation: {control: 0.5, treatment: 0.5}
   arms_drawn_independently: true
   analysis_unit: draw_id              # clustering and resampling unit; random stream keyed by it
@@ -26,7 +26,7 @@ design:
 
 treatment:
   quality_tier: article_age_oldest_tercile   # spec section 6; totals proxy only in the contrast
-  suppression_delta: 0.15             # re-tuned on the base before the committed run (section 10)
+  suppression_delta: 0.15             # kept: scenario D lands E1 in row 5 in 0.962 of replicates (spec [D13], 4 Oct 2026)
   click_lift_tau: 0.025               # scenarios C and D
   never_remove_last_inview: true
   mechanism_check:                    # spec section 6, A18; measured 30 September 2026 [D16]
@@ -71,19 +71,19 @@ operating_characteristics:
     interval: normal
     statistic: relative_lift          # one cluster_bootstrap call per replicate
   joint_ship_rate_check: {scenario: C, target: 0.80, tolerance: 0.025}
-  time_limit_minutes: 35              # `abf oc case02`; projected 18.7, measured 1 Oct 2026 [D15]
+  time_limit_minutes: 35              # `abf oc case02`; measured 22.4 min at 64,100 (2 Oct) and 24.8 min at 57,600 (4 Oct 2026) [D15]
   sweeps:                             # `abf oc case02 --sweeps`
-    time_limit_minutes: 70            # projected 48.6, measured 1 Oct 2026 [D15]
+    time_limit_minutes: 70            # projected about 52 (eight sizes) from per-replicate timings of 1 Oct 2026; not yet run end to end [D15]
     replicates: 1000
     bootstrap: {scenarios: [A], replicates_per_size: 200, resamples: 200, interval: normal}
     wallclock_percentile_bootstrap: {replicates_per_size: 3, resamples: 1000, interval: percentile}
-    sample_size_per_arm: [10000, 15143, 25000, 52500, 64100, 100000, 200000]
+    sample_size_per_arm: [10000, 15143, 25000, 52500, 57600, 64100, 100000, 200000]   # 57,600 added 4 Oct 2026; 64,100 kept as a measured point
     heterogeneity_sigma: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]   # parametric generator, simulated
     tail_dispersion_r: [0.25, 0.5, 1.0, 2.0, 4.0]         # parametric generator, simulated
     heterogeneity_depth_off_point: {sigma: 0.0, depth_term: off}
     tail_bootstrap: {r: [0.25, 0.5], replicates: 200, resamples: 200, interval: normal}
-    parametric_n_per_arm: 64100
+    parametric_n_per_arm: 57600       # follows design.total_draws / 2; re-sized 4 Oct 2026
 
 deferred:
   large_variant_feasibility_check: 2026-10-31
-  real_guardrail_signal: next spec revision after `abf oc case02`
+  real_guardrail_signal: open for Adi with the README (spec section 16, item 7; record section 10, 4 Oct 2026)

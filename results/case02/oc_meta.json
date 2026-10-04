@@ -1,0 +1,49 @@
+{
+  "case": "case02",
+  "oc_seed": 20261003,
+  "replicates": 2000,
+  "workers": 2,
+  "chunks": 8,
+  "bootstrap": {
+    "bootstrap_scenarios": [
+      "A",
+      "D"
+    ],
+    "bootstrap_replicates": 500,
+    "resamples": 200,
+    "ship_margin": 0.005,
+    "guardrail_margin": 0.05,
+    "reread_margin": 0.03
+  },
+  "scenarios": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "C_at_52500",
+    "D_leaked_tier"
+  ],
+  "wall_clock_seconds": 1482.8813782999932,
+  "time_limit_minutes": 35,
+  "within_time_limit": true,
+  "story_rate_D": {
+    "rate": 0.961,
+    "mc_se": 0.004328914413568374
+  },
+  "joint_ship_rate_check": {
+    "rate": 0.814,
+    "mc_se": 0.008700689627839854,
+    "target": 0.8,
+    "tolerance": 0.025,
+    "within_tolerance": true
+  },
+  "python": "3.14.0",
+  "numpy": "2.5.3",
+  "pandas": "3.0.6",
+  "scipy": "1.18.1",
+  "raw_md5": {
+    "behaviors": "5e6392d5c3d27994213fb834f8149528",
+    "history": "a8d50562d0f817178bf6ba308e87ad14",
+    "articles": "bb271df300a391040e9e59d2a224ec35"
+  }
+}
