@@ -190,7 +190,7 @@ def run_oc_case02(config, base, *, replicates, oc_seed, workers, out_dir, raw_di
     for spec in specs.values():
         truths[spec.name] = ri.scenario_truths(ri.potential_outcomes(base.with_tier(spec.tier), spec.prm, g))
         truth_rows.append(dict(scenario=spec.name, tier=spec.tier, delta=spec.prm.delta, tau=spec.prm.tau, total_draws=spec.total_draws, **truths[spec.name]))
-    pd.DataFrame(truth_rows).to_csv(out_dir / "oc_truths.csv", index=False)
+    pd.DataFrame(truth_rows).to_csv(out_dir / "oc_truths.csv", index=False, lineterminator="\n")
     k = chunks or max(1, 4 * workers)
     replicate_chunks = [list(range(replicates))[i::k] for i in range(k)]
     args = [(base if workers == 1 else None, config, oc_seed, chunk, specs, settings) for chunk in replicate_chunks]
@@ -202,8 +202,8 @@ def run_oc_case02(config, base, *, replicates, oc_seed, workers, out_dir, raw_di
     rows = pd.DataFrame([row for part in parts for row in part]).sort_values(["scenario", "replicate", "estimator"], ignore_index=True)
     rows.to_parquet(out_dir / "oc_replicates.parquet", index=False)
     scenarios, rules = summarise(rows, truths)
-    scenarios.to_csv(out_dir / "oc_scenarios.csv", index=False)
-    rules.to_csv(out_dir / "oc_rule.csv", index=False)
+    scenarios.to_csv(out_dir / "oc_scenarios.csv", index=False, lineterminator="\n")
+    rules.to_csv(out_dir / "oc_rule.csv", index=False, lineterminator="\n")
     story = _rate(pd.Series([story_holds(group) for _, group in rows[rows.scenario == "D"].groupby("replicate")]))
     joint = _rate(rows[(rows.scenario == "C") & (rows.estimator == "welch_e1")].rule_row == 4)
     wall = time.perf_counter() - start
@@ -214,5 +214,5 @@ def run_oc_case02(config, base, *, replicates, oc_seed, workers, out_dir, raw_di
         python=platform.python_version(), numpy=np.__version__, pandas=pd.__version__, scipy=scipy.__version__)
     if "raw_md5" in base.summary:
         meta["raw_md5"] = base.summary["raw_md5"]
-    (out_dir / "oc_meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+    (out_dir / "oc_meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8", newline="\n")
     return meta
