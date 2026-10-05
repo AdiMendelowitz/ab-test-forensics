@@ -54,8 +54,6 @@ def cmd_simulate(root: Path, case: str, seed: int | None) -> int:
 
 def cmd_run(root: Path, case: str) -> int:
     """Execute the case notebook headless, in place, so the committed copy carries outputs."""
-    if case == "case02":
-        return _cmd_run_case02(root, case)
     import subprocess
 
     nb = root / "case_studies" / CASES[case] / "analysis.ipynb"
@@ -389,11 +387,6 @@ def _cmd_simulate_case02(root, case, seed):
     print(f"{case}: seed={manifest['seed']} wrote data/generated/{case}/ ({counts})")
     print(f"manifest: data/manifests/{case}.json")
     return 0
-
-
-def _cmd_run_case02(root, case):
-    print("abf run case02: the Case 02 notebook is not built yet", file=sys.stderr)
-    return 2
 
 
 def _cmd_oc_case02(root, case, *, replicates, sweep_replicates, seed, jobs, max_seconds):
