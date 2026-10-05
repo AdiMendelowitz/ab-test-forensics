@@ -4,8 +4,8 @@
 # Seed selection rule (spec section 6): the case seed is the first seed at or above
 # seed_search_start whose single run shows the story (naive and delta-method tests both reject
 # on E2, E1 lands in row 5 of the rule, the guardrail passes, assignment SRM passes). The seed
-# is written here once the generator exists; until then it is null.
-seed: null
+# was set on 4 October 2026 from the seed search at 57,600 per arm (first seed 20261002; story share 0.975 of 200).
+seed: 20261002
 seed_search_start: 20261002
 
 base:
@@ -85,5 +85,5 @@ operating_characteristics:
     parametric_n_per_arm: 57600       # follows design.total_draws / 2; re-sized 4 Oct 2026
 
 deferred:
-  large_variant_feasibility_check: 2026-10-31
+  large_variant_feasibility_check: "2026-10-31"   # quoted so YAML and the JSON manifest agree on a string
   real_guardrail_signal: open for Adi with the README (spec section 16, item 7; record section 10, 4 Oct 2026)

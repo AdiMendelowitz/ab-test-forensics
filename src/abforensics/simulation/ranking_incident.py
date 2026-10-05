@@ -754,5 +754,5 @@ def write_case_data(data: RankingExperimentData, generated_dir: Path, manifest_p
         frame.to_parquet(generated_dir / f"{name}.parquet", index=False)
         checksums[name] = content_sha256(frame)
     manifest = {**data.manifest, "files": {k: f"{k}.parquet" for k in checksums}, "content_sha256": checksums}
-    manifest_path.write_text(json.dumps(manifest, indent=2, default=str) + "\n", encoding="utf-8")
+    manifest_path.write_text(json.dumps(manifest, indent=2, default=str) + "\n", encoding="utf-8", newline="\n")
     return manifest
