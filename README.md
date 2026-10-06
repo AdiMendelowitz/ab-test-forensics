@@ -9,7 +9,7 @@ Most A/B testing material teaches how to obtain p < 0.05. This repository covers
 | # | Case | Failure mechanism | What survives | Status |
 |---|---|---|---|---|
 | 01 | The lift we could not trust | Exposure telemetry lost for one platform segment on the treatment side; the dashboard analyses exposed users | Assignment-level SRM passes, exposure-level fails; ITT stays valid, the triggered estimate does not | Built; operating characteristics at B = 5,000 per scenario |
-| 02 | The metric that told two stories | User-randomised, event-analysed ratio metric with heavy-tailed exposure and a treatment-induced denominator shift | Three estimands stated side by side; the delta-method, jackknife and bootstrap intervals on the ratio; the naive interval's Type I error measured | Spec written (`docs/design/case-02.md`) |
+| 02 | The metric that told two stories | User-randomised, event-analysed ratio metric with heavy-tailed exposure and a treatment-induced denominator shift | Three estimands stated side by side; the delta-method, jackknife and bootstrap intervals on the ratio; the naive interval's Type I error measured | Notebook built; operating characteristics at B = 2,000 per scenario; README and memo pending |
 | 03 | When time becomes the treatment unit | Carryover under autocorrelated outcomes in a time-block randomised experiment on real hourly load data | Block-aware analysis with washout; bias and power across block lengths | Planned |
 
 Two claims run through the cases: the analysed population must be the randomised one (Case 01), and the variance of an estimate must respect the unit that was randomised, not the unit that was measured (Cases 02 and 03).
