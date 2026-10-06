@@ -29,3 +29,6 @@ dist/
 # OS
 Thumbs.db
 .DS_Store
+
+# Claude session configuration (destination table for session skills)
+CLAUDE.md
