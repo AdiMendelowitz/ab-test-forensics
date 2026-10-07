@@ -298,8 +298,7 @@ class MeanDifferenceResult:
     alpha: float
     assumptions: tuple[str, ...] = (
         "units are independent within and across arms",
-        "the outcome has finite variance; with heavy tails the normal approximation needs "
-        "large n",
+        "the outcome has finite variance; with heavy tails the normal approximation needs large n",
         "arms were formed by random assignment of the units being compared",
     )
     warnings: tuple[str, ...] = field(default_factory=tuple)

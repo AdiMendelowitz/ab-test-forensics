@@ -22,12 +22,14 @@ def _arms(n_per_arm: int, seed: int, lift: float = 0.0, rows_per_user: int = 2) 
     p = 1 / (1 + np.exp(-rng.normal(-2.3, 0.6, size=n)))
     p = np.where(arm == "treatment", np.minimum(p * (1 + lift), 1.0), p)
     clicks = rng.binomial(inviews, p[:, None])
-    return pd.DataFrame({
-        "user_id": np.repeat(np.arange(n), rows_per_user),
-        "arm": np.repeat(arm, rows_per_user),
-        "inviews": inviews.ravel(),
-        "clicks": clicks.ravel(),
-    })
+    return pd.DataFrame(
+        {
+            "user_id": np.repeat(np.arange(n), rows_per_user),
+            "arm": np.repeat(arm, rows_per_user),
+            "inviews": inviews.ravel(),
+            "clicks": clicks.ravel(),
+        }
+    )
 
 
 def _ros(frame: pd.DataFrame, **kw):
@@ -83,16 +85,27 @@ def test_delta_interval_is_wider_than_naive_under_heterogeneity() -> None:
     f = _arms(5_000, seed=6)
     d = _ros(f)
     tot = f.groupby("arm")[["clicks", "inviews"]].sum()
-    n = naive_event_rate(int(tot.loc["treatment", "clicks"]), int(tot.loc["treatment", "inviews"]),
-                         int(tot.loc["control", "clicks"]), int(tot.loc["control", "inviews"]))
+    n = naive_event_rate(
+        int(tot.loc["treatment", "clicks"]),
+        int(tot.loc["treatment", "inviews"]),
+        int(tot.loc["control", "clicks"]),
+        int(tot.loc["control", "inviews"]),
+    )
     assert n.absolute_difference == pytest.approx(d.absolute_difference)
     assert d.standard_error > 1.3 * n.standard_error
 
 
 def test_naive_event_rate_carries_its_warning_and_matches_proportions() -> None:
     n = naive_event_rate(900, 10_000, 850, 10_000)
-    ref = difference_in_proportions(900, 10_000, 850, 10_000, estimand="x",
-                                    analysis_unit="impression", population="all impressions")
+    ref = difference_in_proportions(
+        900,
+        10_000,
+        850,
+        10_000,
+        estimand="x",
+        analysis_unit="impression",
+        population="all impressions",
+    )
     assert n.warnings[0] == NAIVE_WARNING
     assert n.analysis_unit == "impression"
     assert n.confidence_interval == ref.confidence_interval
@@ -135,18 +148,33 @@ def test_arrays_kernel_matches_frame_function():
     c_t, m_t, c_c, m_c = _unit_arrays(1, 80)
     parts = []
     for a, (arm, c, m) in enumerate((("treatment", c_t, m_t), ("control", c_c, m_c))):
-        parts.append(pd.DataFrame({
-            "user_id": np.repeat(a * 80 + np.arange(80), 2), "arm": arm,
-            "clicks": np.column_stack((c - c // 2, c // 2)).ravel(),
-            "inviews": np.column_stack((m - m // 2, m // 2)).ravel(),
-        }))
+        parts.append(
+            pd.DataFrame(
+                {
+                    "user_id": np.repeat(a * 80 + np.arange(80), 2),
+                    "arm": arm,
+                    "clicks": np.column_stack((c - c // 2, c // 2)).ravel(),
+                    "inviews": np.column_stack((m - m // 2, m // 2)).ravel(),
+                }
+            )
+        )
     frame = pd.concat(parts, ignore_index=True)
     for method in ("delta", "jackknife", "bootstrap"):
         options = dict(resamples=200, seed=3, interval="normal") if method == "bootstrap" else {}
-        assert ratio_of_sums(frame, "clicks", "inviews", "user_id", "arm", estimand="E2",
-                             method=method, **options) == ratio_of_sums_arrays(
-            c_t, m_t, c_c, m_c, estimand="E2", numerator="clicks", denominator="inviews",
-            unit_col="user_id", method=method, **options)
+        assert ratio_of_sums(
+            frame, "clicks", "inviews", "user_id", "arm", estimand="E2", method=method, **options
+        ) == ratio_of_sums_arrays(
+            c_t,
+            m_t,
+            c_c,
+            m_c,
+            estimand="E2",
+            numerator="clicks",
+            denominator="inviews",
+            unit_col="user_id",
+            method=method,
+            **options,
+        )
 
 
 def test_delta_se_matches_exact_rational():
@@ -154,7 +182,9 @@ def test_delta_se_matches_exact_rational():
     n = len(c)
     r = Fraction(sum(map(int, c)), sum(map(int, m)))
     mbar = Fraction(sum(map(int, m)), n)
-    var = sum((Fraction(int(ci)) - r * int(mi)) ** 2 for ci, mi in zip(c, m)) / ((n - 1) * n * mbar ** 2)
+    var = sum((Fraction(int(ci)) - r * int(mi)) ** 2 for ci, mi in zip(c, m)) / (
+        (n - 1) * n * mbar**2
+    )
     assert math.isclose(_delta_se(c, m) ** 2, float(var), rel_tol=1e-12)
 
 
@@ -187,7 +217,9 @@ def test_kernel_is_invariant_to_unit_order():
             if isinstance(value, float):
                 assert math.isclose(value, b[name], rel_tol=1e-12, abs_tol=0)
             elif isinstance(value, tuple) and value and isinstance(value[0], float):
-                assert all(math.isclose(x, y, rel_tol=1e-12, abs_tol=0) for x, y in zip(value, b[name]))
+                assert all(
+                    math.isclose(x, y, rel_tol=1e-12, abs_tol=0) for x, y in zip(value, b[name])
+                )
             else:
                 assert value == b[name]
 

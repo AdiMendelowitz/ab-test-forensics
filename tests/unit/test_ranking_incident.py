@@ -22,11 +22,22 @@ RAW = REPO / "data" / "raw" / "ebnerd_small"
 CONFIG = {
     "seed": None,
     "base": {"raw_dir": "data/raw/ebnerd_small"},
-    "design": {"total_draws": 6000, "allocation": {"control": 0.5, "treatment": 0.5},
-               "arrival_delay_hours": {"min": 0, "max": 36}},
-    "treatment": {"suppression_delta": 0.15, "click_lift_tau": 0.025, "never_remove_last_inview": True},
-    "guardrail_simulation": {"per_impression_rate": 0.005, "low_quality_multiplier": 3.0,
-                             "heterogeneity_shape": 2.0, "population_seed": 20261001},
+    "design": {
+        "total_draws": 6000,
+        "allocation": {"control": 0.5, "treatment": 0.5},
+        "arrival_delay_hours": {"min": 0, "max": 36},
+    },
+    "treatment": {
+        "suppression_delta": 0.15,
+        "click_lift_tau": 0.025,
+        "never_remove_last_inview": True,
+    },
+    "guardrail_simulation": {
+        "per_impression_rate": 0.005,
+        "low_quality_multiplier": 3.0,
+        "heterogeneity_shape": 2.0,
+        "population_seed": 20261001,
+    },
 }
 
 
@@ -42,14 +53,21 @@ def data(base: ri.RankingBase) -> ri.RankingExperimentData:
 
 # --- keyed streams -----------------------------------------------------------------------------
 
+
 def test_keyed_uniform_golden_values() -> None:
     """Integer-only hashing: identical bits on Linux and Windows."""
-    cases = [((0, 0, 1), 0.2691303195904541), ((20261003, 0, 1), 0.11483560355249056),
-             ((20261003, 1, 1), 0.7725780512874509), ((20261003, 128199, 2), 0.013368320785132393),
-             ((2**63 + 5, 7, 13), 0.644317990876101)]
+    cases = [
+        ((0, 0, 1), 0.2691303195904541),
+        ((20261003, 0, 1), 0.11483560355249056),
+        ((20261003, 1, 1), 0.7725780512874509),
+        ((20261003, 128199, 2), 0.013368320785132393),
+        ((2**63 + 5, 7, 13), 0.644317990876101),
+    ]
     for (s, k, u), expected in cases:
         assert float(ri.keyed_uniform(s, np.array([k]), u)[0]) == expected
-    assert float(ri.keyed_uniform(20261003, np.array([5]), 9, np.array([3]))[0]) == 0.9252252249836339
+    assert (
+        float(ri.keyed_uniform(20261003, np.array([5]), 9, np.array([3]))[0]) == 0.9252252249836339
+    )
 
 
 def test_keyed_uniform_depends_only_on_its_own_draw() -> None:
@@ -63,8 +81,8 @@ def test_keyed_uniform_is_uniform_and_streams_are_uncorrelated() -> None:
     keys = np.arange(200_000)
     a, b = ri.keyed_uniform(1, keys, 3), ri.keyed_uniform(1, keys, 4)
     assert stats.kstest(a, "uniform").pvalue > 1e-3
-    assert abs(np.corrcoef(a, b)[0, 1]) < 0.01            # across uses, same key
-    assert abs(np.corrcoef(a[:-1], a[1:])[0, 1]) < 0.01     # adjacent keys
+    assert abs(np.corrcoef(a, b)[0, 1]) < 0.01  # across uses, same key
+    assert abs(np.corrcoef(a[:-1], a[1:])[0, 1]) < 0.01  # adjacent keys
     table = np.histogram2d(a, b, bins=10)[0]
     assert stats.chisquare(table.ravel()).pvalue > 1e-3
     assert a.min() >= 0.0 and a.max() < 1.0
@@ -77,8 +95,23 @@ def test_keyed_uniform_rejects_float_keys() -> None:
 
 # --- binomial inverse CDF ------------------------------------------------------------------------
 
-@pytest.mark.parametrize("n,p", [(0, 0.3), (1, 0.15), (92, 0.15), (1284, 0.15), (2187, 0.15),
-                                 (2187, 0.005), (2187, 0.06), (40, 0.9), (1100, 0.49), (5, 1.0), (7, 0.0)])
+
+@pytest.mark.parametrize(
+    "n,p",
+    [
+        (0, 0.3),
+        (1, 0.15),
+        (92, 0.15),
+        (1284, 0.15),
+        (2187, 0.15),
+        (2187, 0.005),
+        (2187, 0.06),
+        (40, 0.9),
+        (1100, 0.49),
+        (5, 1.0),
+        (7, 0.0),
+    ],
+)
 def test_binom_icdf_matches_scipy(n: int, p: float) -> None:
     u = np.r_[np.random.default_rng(n).random(4000), 1e-15, 0.5, 1 - 2**-53]
     ours = ri.binom_icdf(u, n, p)
@@ -93,6 +126,7 @@ def test_binom_icdf_matches_scipy(n: int, p: float) -> None:
 
 # --- generator -----------------------------------------------------------------------------------
 
+
 def test_potential_outcomes_match_the_simulated_draws(base: ri.RankingBase) -> None:
     """Section 14: the truths match the potential outcomes the generator samples from."""
     prm = ri.RankingParameters(0.15, 0.025)
@@ -100,9 +134,12 @@ def test_potential_outcomes_match_the_simulated_draws(base: ri.RankingBase) -> N
     dr = ri.simulate_draws(base, prm, seed=21, total_draws=400_000)
     t = dr.arm == 1
     pop = dr.population_index[t]
-    for sim, col in [(dr.clicks[t], "expected_clicks_treatment"), (dr.inviews[t], "expected_inviews_treatment"),
-                     (dr.clicks[t] / dr.inviews[t], "expected_user_rate_treatment"),
-                     (dr.feedback[t], "expected_feedback_treatment")]:
+    for sim, col in [
+        (dr.clicks[t], "expected_clicks_treatment"),
+        (dr.inviews[t], "expected_inviews_treatment"),
+        (dr.clicks[t] / dr.inviews[t], "expected_user_rate_treatment"),
+        (dr.feedback[t], "expected_feedback_treatment"),
+    ]:
         resid = sim - po[col].to_numpy()[pop]
         assert abs(resid.mean()) < 4 * resid.std() / np.sqrt(resid.size), col
     c = ~t
@@ -120,7 +157,9 @@ def test_truths_closed_forms(base: ri.RankingBase) -> None:
     po = ri.potential_outcomes(base, ri.RankingParameters(0.15, 0.0))
     removed = 0.15 * (base.old_candidates_clicked + base.old_candidates_unclicked)
     assert np.allclose(po["expected_inviews_treatment"], base.inviews - removed)
-    assert np.allclose(po["expected_clicks_treatment"], base.clicks - 0.15 * base.old_candidates_clicked)
+    assert np.allclose(
+        po["expected_clicks_treatment"], base.clicks - 0.15 * base.old_candidates_clicked
+    )
     tr_a = ri.scenario_truths(ri.potential_outcomes(base, ri.RankingParameters(0.0, 0.0)))
     assert all(abs(v) < 1e-12 for k, v in tr_a.items() if k.startswith("expected_relative_lift"))
 
@@ -129,7 +168,10 @@ def test_manifest_truths_match_potential_outcomes(data: ri.RankingExperimentData
     tr = ri.scenario_truths(data.truth)
     for k, v in tr.items():
         assert data.manifest[k] == v
-    assert data.manifest["expected_relative_lift_ctr"] > data.manifest["expected_relative_lift_clicks_per_user"]
+    assert (
+        data.manifest["expected_relative_lift_ctr"]
+        > data.manifest["expected_relative_lift_clicks_per_user"]
+    )
 
 
 def test_guardrail_multipliers_have_unit_weighted_mean(base: ri.RankingBase) -> None:
@@ -153,7 +195,9 @@ def test_duplicated_draws_share_no_treatment_noise(base: ri.RankingBase) -> None
 
 
 def test_common_random_numbers_across_scenarios(base: ri.RankingBase) -> None:
-    out = {s: ri.simulate_draws(base, ri.parameters_from_config(CONFIG, s), 9, 20_000) for s in "ABCD"}
+    out = {
+        s: ri.simulate_draws(base, ri.parameters_from_config(CONFIG, s), 9, 20_000) for s in "ABCD"
+    }
     for s in "BCD":
         assert np.array_equal(out[s].population_index, out["A"].population_index)
         assert np.array_equal(out[s].arm, out["A"].arm)
@@ -173,9 +217,12 @@ def test_last_inview_is_never_removed(base: ri.RankingBase) -> None:
     assert ex.loc[last[ex["inview_index"].to_numpy()], "kept"].all()
     assert dr.inviews.min() >= 1
     t = dr.arm == 1
-    assert np.array_equal(dr.inviews[t], base.inviews[dr.population_index[t]]
-                          - base.old_inviews[dr.population_index[t]]
-                          + base.iv_old[base.offsets[1:] - 1][dr.population_index[t]])
+    assert np.array_equal(
+        dr.inviews[t],
+        base.inviews[dr.population_index[t]]
+        - base.old_inviews[dr.population_index[t]]
+        + base.iv_old[base.offsets[1:] - 1][dr.population_index[t]],
+    )
 
 
 def test_tables_reproduce_the_fast_path_counts(data: ri.RankingExperimentData) -> None:
@@ -198,7 +245,11 @@ def test_removed_counts_by_class(base: ri.RankingBase) -> None:
     ex = ri.expand_inviews(base, dr, seed=8)
     clicked = base.iv_click[ex["inview_index"].to_numpy()]
     rem = ~ex["kept"].to_numpy()
-    by = pd.DataFrame({"d": ex["draw_id"], "rc": rem & clicked, "ru": rem & ~clicked}).groupby("d").sum()
+    by = (
+        pd.DataFrame({"d": ex["draw_id"], "rc": rem & clicked, "ru": rem & ~clicked})
+        .groupby("d")
+        .sum()
+    )
     assert np.array_equal(by["rc"].to_numpy(), dr.removed_clicked)
     assert np.array_equal(by["ru"].to_numpy(), dr.removed_unclicked)
 
@@ -217,8 +268,23 @@ def test_null_seed_is_rejected(base: ri.RankingBase) -> None:
 
 # --- licence: no per-user data in tracked files (spec section 6) ----------------------------------
 
-_SKIP_DIRS = {".git", ".venv", "venv", "data", "notes", "__pycache__", ".pytest_cache", ".ruff_cache",
-              ".idea", ".vscode", "build", "dist", ".ipynb_checkpoints", "parts", "__MACOSX"}
+_SKIP_DIRS = {
+    ".git",
+    ".venv",
+    "venv",
+    "data",
+    "notes",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".idea",
+    ".vscode",
+    "build",
+    "dist",
+    ".ipynb_checkpoints",
+    "parts",
+    "__MACOSX",
+}
 _ID_COLUMNS = {"user_id", "article_id", "draw_id"}
 
 
@@ -252,6 +318,7 @@ def _columns_and_rows(path: Path) -> tuple[set[str], int]:
         elif isinstance(o, list):
             for v in o:
                 walk(v)
+
     walk(doc)
     return keys, 0
 
@@ -264,8 +331,11 @@ def test_no_tracked_file_carries_per_user_data() -> None:
         cols, rows = _columns_and_rows(path)
         if cols & _ID_COLUMNS:
             offenders.append(f"{rel}: {sorted(cols & _ID_COLUMNS)}")
-        allowed = (rel.parts[0] == "results" and rel.name.startswith("oc_")) or "figures" in rel.parts \
+        allowed = (
+            (rel.parts[0] == "results" and rel.name.startswith("oc_"))
+            or "figures" in rel.parts
             or "manifest" in rel.name
+        )
         if rows > 1000 and not allowed:
             offenders.append(f"{rel}: {rows} rows")
     assert not offenders, offenders
@@ -273,7 +343,10 @@ def test_no_tracked_file_carries_per_user_data() -> None:
 
 # --- the real base (skipped without the download) ----------------------------------------------------
 
-@pytest.mark.skipif(not (RAW / "train" / "behaviors.parquet").exists(), reason="EB-NeRD small not downloaded")
+
+@pytest.mark.skipif(
+    not (RAW / "train" / "behaviors.parquet").exists(), reason="EB-NeRD small not downloaded"
+)
 def test_real_base_matches_the_spec_measurements() -> None:
     b = ri.load_base(RAW)
     assert b.n_users == 15_143

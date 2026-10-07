@@ -54,15 +54,19 @@ def _statistic_name(statistic: Statistic) -> str:
     return getattr(statistic, "name", getattr(statistic, "__name__", repr(statistic)))
 
 
-def _unit_sums(frame: pd.DataFrame, unit_col: str, extra_keys: tuple[str, ...] = ()) -> pd.DataFrame:
+def _unit_sums(
+    frame: pd.DataFrame, unit_col: str, extra_keys: tuple[str, ...] = ()
+) -> pd.DataFrame:
     if unit_col not in frame.columns:
         raise ValueError(f"unit column {unit_col!r} not in frame")
     if frame[unit_col].isna().any():
         raise ValueError(f"unit column {unit_col!r} has missing values")
     keys = [unit_col, *extra_keys]
     value_cols = [
-        c for c in frame.columns
-        if c not in keys and pd.api.types.is_numeric_dtype(frame[c])
+        c
+        for c in frame.columns
+        if c not in keys
+        and pd.api.types.is_numeric_dtype(frame[c])
         and not pd.api.types.is_bool_dtype(frame[c])
     ]
     if not value_cols:
@@ -162,7 +166,9 @@ def cluster_bootstrap(
     values = sums.to_numpy(dtype=float)
     columns = sums.columns
     n = len(sums)
-    estimate = float(_evaluate(statistic, pd.DataFrame(values.sum(axis=0)[None, :], columns=columns))[0])
+    estimate = float(
+        _evaluate(statistic, pd.DataFrame(values.sum(axis=0)[None, :], columns=columns))[0]
+    )
 
     if strata_col is None:
         groups = [np.arange(n)]
@@ -183,7 +189,7 @@ def cluster_bootstrap(
             picks = rng.integers(0, k, size=(b, k))
             counts = np.stack([np.bincount(row, minlength=k) for row in picks])
             totals += counts @ values[g]
-        dist[done:done + b] = _evaluate(statistic, pd.DataFrame(totals, columns=columns))
+        dist[done : done + b] = _evaluate(statistic, pd.DataFrame(totals, columns=columns))
         done += b
 
     se = float(np.std(dist, ddof=1))

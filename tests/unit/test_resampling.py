@@ -18,11 +18,13 @@ def _events(n_users: int, seed: int, rows_per_user: int = 3) -> pd.DataFrame:
     inviews = rng.negative_binomial(2, 0.05, size=(n_users, rows_per_user)) + 1
     p = 1 / (1 + np.exp(-rng.normal(-2.3, 0.6, size=n_users)))
     clicks = rng.binomial(inviews, p[:, None])
-    return pd.DataFrame({
-        "draw_id": np.repeat(np.arange(n_users), rows_per_user),
-        "inviews": inviews.ravel(),
-        "clicks": clicks.ravel(),
-    })
+    return pd.DataFrame(
+        {
+            "draw_id": np.repeat(np.arange(n_users), rows_per_user),
+            "inviews": inviews.ravel(),
+            "clicks": clicks.ravel(),
+        }
+    )
 
 
 def _brute_force_jackknife(frame: pd.DataFrame, unit_col: str) -> float:
@@ -73,8 +75,12 @@ def test_duplicated_draws_are_separate_units() -> None:
 
 def test_bootstrap_is_reproducible_and_records_its_budget() -> None:
     frame = _events(300, seed=5)
-    a = cluster_bootstrap(frame, "draw_id", CTR, resamples=200, seed=11, estimand=EST, interval="normal")
-    b = cluster_bootstrap(frame, "draw_id", CTR, resamples=200, seed=11, estimand=EST, interval="normal")
+    a = cluster_bootstrap(
+        frame, "draw_id", CTR, resamples=200, seed=11, estimand=EST, interval="normal"
+    )
+    b = cluster_bootstrap(
+        frame, "draw_id", CTR, resamples=200, seed=11, estimand=EST, interval="normal"
+    )
     assert a.standard_error == b.standard_error
     assert (a.resamples, a.seed, a.interval) == (200, 11, "normal")
     assert a.lower < a.estimate < a.upper
@@ -102,8 +108,13 @@ def test_stratified_bootstrap_keeps_stratum_sizes() -> None:
     frame["t_units"] = np.where(frame["arm"] == "treatment", 1.0 / 3, 0.0)  # 3 rows per draw
     frame["one"] = 1.0 / 3  # each draw totals 1 on both columns
     r = cluster_bootstrap(
-        frame, "draw_id", RatioOfSums("t_units", "one"), resamples=100, seed=2,
-        estimand="share of draws in treatment", strata_col="arm",
+        frame,
+        "draw_id",
+        RatioOfSums("t_units", "one"),
+        resamples=100,
+        seed=2,
+        estimand="share of draws in treatment",
+        strata_col="arm",
     )
     assert np.allclose(r.distribution, 10 / 30)
 

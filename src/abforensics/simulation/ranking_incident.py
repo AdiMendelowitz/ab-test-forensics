@@ -123,7 +123,9 @@ def binom_icdf(u: Any, n: Any, p: Any) -> np.ndarray:
     elements whose pmf at 0 is below 1e-250 fall back to ``scipy.stats.binom.ppf``.
     """
     u, n, p = np.broadcast_arrays(
-        np.asarray(u, dtype=np.float64), np.asarray(n, dtype=np.int64), np.asarray(p, dtype=np.float64)
+        np.asarray(u, dtype=np.float64),
+        np.asarray(n, dtype=np.int64),
+        np.asarray(p, dtype=np.float64),
     )
     shape = u.shape
     u, n, p = u.ravel(), n.ravel(), p.ravel()
@@ -193,7 +195,7 @@ class RankingBase:
     leaked_candidates_clicked: np.ndarray | None = None
     leaked_candidates_unclicked: np.ndarray | None = None
 
-    def with_tier(self, tier: str) -> "RankingBase":
+    def with_tier(self, tier: str) -> RankingBase:
         """The same population with the low-quality tier set to "age" (default) or "leaked"."""
         if tier == "age":
             return self
@@ -213,8 +215,12 @@ class RankingBase:
         return int(self.user_id.size)
 
 
-def build_base(inviews: pd.DataFrame, users: pd.DataFrame, tier_cut_hours: float | None = None,
-               summary: Mapping[str, Any] | None = None) -> RankingBase:
+def build_base(
+    inviews: pd.DataFrame,
+    users: pd.DataFrame,
+    tier_cut_hours: float | None = None,
+    summary: Mapping[str, Any] | None = None,
+) -> RankingBase:
     """Build the population from one row per in-view and one row per user.
 
     ``inviews`` needs user_id, impression_id, impression_time, position, article_id,
@@ -224,11 +230,16 @@ def build_base(inviews: pd.DataFrame, users: pd.DataFrame, tier_cut_hours: float
     unknown age is not old. The user's last in-view (latest page view by time, then impression
     id, then the largest list position) is never a suppression candidate.
     """
-    iv = inviews.sort_values(["user_id", "impression_time", "impression_id", "position"],
-                             kind="stable").reset_index(drop=True)
+    iv = inviews.sort_values(
+        ["user_id", "impression_time", "impression_id", "position"], kind="stable"
+    ).reset_index(drop=True)
     age = iv["age_hours"].to_numpy(dtype=np.float64)
     known = ~np.isnan(age)
-    cut = float(np.quantile(age[known], 2.0 / 3.0)) if tier_cut_hours is None else float(tier_cut_hours)
+    cut = (
+        float(np.quantile(age[known], 2.0 / 3.0))
+        if tier_cut_hours is None
+        else float(tier_cut_hours)
+    )
     old = known & (age >= cut)
     uid = iv["user_id"].to_numpy(dtype=np.int64)
     user_ids, starts, m = np.unique(uid, return_index=True, return_counts=True)
@@ -310,24 +321,49 @@ def load_base(raw_dir: Path | str) -> RankingBase:
     for name, f in files.items():
         if not f.exists():
             raise FileNotFoundError(f"EB-NeRD {name} file not found at {f}; see the case README")
-    beh = pd.read_parquet(files["behaviors"], columns=[
-        "impression_id", "impression_time", "article_ids_inview", "article_ids_clicked",
-        "user_id", "device_type", "is_subscriber"])
-    art = pd.read_parquet(files["articles"], columns=["article_id", "published_time", "total_inviews", "total_pageviews"])
+    beh = pd.read_parquet(
+        files["behaviors"],
+        columns=[
+            "impression_id",
+            "impression_time",
+            "article_ids_inview",
+            "article_ids_clicked",
+            "user_id",
+            "device_type",
+            "is_subscriber",
+        ],
+    )
+    art = pd.read_parquet(
+        files["articles"],
+        columns=["article_id", "published_time", "total_inviews", "total_pageviews"],
+    )
     hist = pd.read_parquet(files["history"], columns=["user_id", "article_id_fixed"])
     lengths = beh["article_ids_inview"].map(len).to_numpy()
     row = np.repeat(np.arange(len(beh)), lengths)
-    iv = pd.DataFrame({
-        "row": row,
-        "user_id": beh["user_id"].to_numpy()[row],
-        "impression_id": beh["impression_id"].to_numpy()[row],
-        "impression_time": beh["impression_time"].to_numpy()[row],
-        "position": np.concatenate([np.arange(k) for k in lengths]) if len(lengths) else np.zeros(0, int),
-        "article_id": np.concatenate(beh["article_ids_inview"].to_numpy()).astype(np.int64),
-    })
-    ck = beh[["article_ids_clicked"]].assign(row=np.arange(len(beh))).explode("article_ids_clicked").dropna()
-    ck = pd.DataFrame({"row": ck["row"].to_numpy(dtype=np.int64),
-                       "article_id": ck["article_ids_clicked"].to_numpy(dtype=np.int64)}).drop_duplicates()
+    iv = pd.DataFrame(
+        {
+            "row": row,
+            "user_id": beh["user_id"].to_numpy()[row],
+            "impression_id": beh["impression_id"].to_numpy()[row],
+            "impression_time": beh["impression_time"].to_numpy()[row],
+            "position": np.concatenate([np.arange(k) for k in lengths])
+            if len(lengths)
+            else np.zeros(0, int),
+            "article_id": np.concatenate(beh["article_ids_inview"].to_numpy()).astype(np.int64),
+        }
+    )
+    ck = (
+        beh[["article_ids_clicked"]]
+        .assign(row=np.arange(len(beh)))
+        .explode("article_ids_clicked")
+        .dropna()
+    )
+    ck = pd.DataFrame(
+        {
+            "row": ck["row"].to_numpy(dtype=np.int64),
+            "article_id": ck["article_ids_clicked"].to_numpy(dtype=np.int64),
+        }
+    ).drop_duplicates()
     ck["click"] = True
     iv = iv.merge(ck, on=["row", "article_id"], how="left")
     iv["click"] = iv["click"].eq(True)
@@ -340,20 +376,34 @@ def load_base(raw_dir: Path | str) -> RankingBase:
     age_cut = float(np.quantile(age[known], 2.0 / 3.0))
     ratio_cut = float(np.quantile(ratio.to_numpy()[has], 1.0 / 3.0))
     iv["leaked_low"] = np.where(has, ratio.to_numpy() <= ratio_cut, known & (age >= age_cut))
-    first = beh.sort_values(["user_id", "impression_time", "impression_id"]).drop_duplicates("user_id")
+    first = beh.sort_values(["user_id", "impression_time", "impression_id"]).drop_duplicates(
+        "user_id"
+    )
     pre = hist.assign(n=hist["article_id_fixed"].map(len)).groupby("user_id")["n"].sum()
-    users = pd.DataFrame({
-        "user_id": first["user_id"].to_numpy(),
-        "device_type": first["device_type"].to_numpy(dtype=np.int64),
-        "is_subscriber": first["is_subscriber"].to_numpy(dtype=bool),
-    })
+    users = pd.DataFrame(
+        {
+            "user_id": first["user_id"].to_numpy(),
+            "device_type": first["device_type"].to_numpy(dtype=np.int64),
+            "is_subscriber": first["is_subscriber"].to_numpy(dtype=bool),
+        }
+    )
     users["pre_period_clicks_21d"] = users["user_id"].map(pre).fillna(0).astype(np.int64)
-    summary = {"source": "EB-NeRD small, train split", "raw_md5": {k: _md5(f) for k, f in files.items()},
-               "leaked_ratio_cut": ratio_cut, "without_totals_share": float((~has).mean())}
-    return build_base(iv.drop(columns=["row", "published_time", "total_inviews", "total_pageviews"]), users, summary=summary)
+    summary = {
+        "source": "EB-NeRD small, train split",
+        "raw_md5": {k: _md5(f) for k, f in files.items()},
+        "leaked_ratio_cut": ratio_cut,
+        "without_totals_share": float((~has).mean()),
+    }
+    return build_base(
+        iv.drop(columns=["row", "published_time", "total_inviews", "total_pageviews"]),
+        users,
+        summary=summary,
+    )
 
 
-def make_synthetic_base(n_users: int = 300, seed: int = 1, mean_inviews: float = 40.0) -> RankingBase:
+def make_synthetic_base(
+    n_users: int = 300, seed: int = 1, mean_inviews: float = 40.0
+) -> RankingBase:
     """A small simulated population with the base's structure, for tests (never for figures)."""
     rng = np.random.default_rng(seed)
     m = 1 + rng.negative_binomial(0.8, 0.8 / (0.8 + mean_inviews), n_users)
@@ -370,13 +420,25 @@ def make_synthetic_base(n_users: int = 300, seed: int = 1, mean_inviews: float =
     click = rng.random(n) < np.clip(p_click, 0, 0.99)
     first = np.r_[0, np.cumsum(m)[:-1]]
     click[first] = True  # every user clicks at least once, as on the base
-    iv = pd.DataFrame({"user_id": uid, "impression_id": uid * 1000 + views, "impression_time": t,
-                       "position": pos, "article_id": rng.integers(1, 5000, n), "age_hours": age,
-                       "click": click})
-    users = pd.DataFrame({"user_id": np.arange(1000, 1000 + n_users),
-                          "device_type": rng.integers(1, 4, n_users),
-                          "is_subscriber": rng.random(n_users) < 0.1,
-                          "pre_period_clicks_21d": rng.poisson(20, n_users)})
+    iv = pd.DataFrame(
+        {
+            "user_id": uid,
+            "impression_id": uid * 1000 + views,
+            "impression_time": t,
+            "position": pos,
+            "article_id": rng.integers(1, 5000, n),
+            "age_hours": age,
+            "click": click,
+        }
+    )
+    users = pd.DataFrame(
+        {
+            "user_id": np.arange(1000, 1000 + n_users),
+            "device_type": rng.integers(1, 4, n_users),
+            "is_subscriber": rng.random(n_users) < 0.1,
+            "pre_period_clicks_21d": rng.poisson(20, n_users),
+        }
+    )
     flip = rng.random(n) < 0.2
     iv["leaked_low"] = np.where(np.isnan(age), False, age > 9.0) ^ flip
     return build_base(iv, users, summary={"source": "synthetic (tests only)"})
@@ -423,11 +485,15 @@ def parameters_from_config(config: Mapping[str, Any], scenario: str = "D") -> Ra
     return RankingParameters(
         delta=delta if use_delta else 0.0,
         tau=tau if use_tau else 0.0,
-        feedback_rate=_num("guardrail_simulation.per_impression_rate", gs["per_impression_rate"], 0.0, 1.0),
-        low_quality_multiplier=_num("guardrail_simulation.low_quality_multiplier",
-                                    gs["low_quality_multiplier"], 0.0, 1000.0),
-        heterogeneity_shape=_num("guardrail_simulation.heterogeneity_shape",
-                                 gs["heterogeneity_shape"], 1e-6, 1e6),
+        feedback_rate=_num(
+            "guardrail_simulation.per_impression_rate", gs["per_impression_rate"], 0.0, 1.0
+        ),
+        low_quality_multiplier=_num(
+            "guardrail_simulation.low_quality_multiplier", gs["low_quality_multiplier"], 0.0, 1000.0
+        ),
+        heterogeneity_shape=_num(
+            "guardrail_simulation.heterogeneity_shape", gs["heterogeneity_shape"], 1e-6, 1e6
+        ),
         population_seed=int(gs["population_seed"]),
     )
 
@@ -475,27 +541,47 @@ class Draws:
 
     def frame(self) -> pd.DataFrame:
         """Draw-level frame for the estimators: draw_id, arm label, clicks, inviews, feedback."""
-        return pd.DataFrame({"draw_id": self.draw_id, "arm": np.asarray(ARMS)[self.arm],
-                             "clicks": self.clicks, "inviews": self.inviews, "feedback": self.feedback})
+        return pd.DataFrame(
+            {
+                "draw_id": self.draw_id,
+                "arm": np.asarray(ARMS)[self.arm],
+                "clicks": self.clicks,
+                "inviews": self.inviews,
+                "feedback": self.feedback,
+            }
+        )
 
 
-def simulate_draws(base: RankingBase, prm: RankingParameters, seed: int, total_draws: int,
-                   g: np.ndarray | None = None) -> Draws:
+def simulate_draws(
+    base: RankingBase,
+    prm: RankingParameters,
+    seed: int,
+    total_draws: int,
+    g: np.ndarray | None = None,
+) -> Draws:
     """Draw ``total_draws`` users with replacement, assign each to an arm with probability 1/2
     (arm sizes Binomial(total_draws, 0.5), arms independent), and simulate outcomes."""
     d = np.arange(int(total_draws), dtype=np.int64)
     arm = (keyed_uniform(seed, d, USE["arm"]) < 0.5).astype(np.int8)
-    pop = np.minimum((keyed_uniform(seed, d, USE["population"]) * base.n_users).astype(np.int64),
-                     base.n_users - 1)
+    pop = np.minimum(
+        (keyed_uniform(seed, d, USE["population"]) * base.n_users).astype(np.int64),
+        base.n_users - 1,
+    )
     m, c, m_old = base.inviews[pop], base.clicks[pop], base.old_inviews[pop]
     zeros = np.zeros(d.size, dtype=np.int64)
     kc, ku, lift = zeros.copy(), zeros.copy(), zeros.copy()
     t = np.flatnonzero(arm == 1)
     if prm.delta > 0 and t.size:
-        kc[t] = binom_icdf(keyed_uniform(seed, d[t], USE["remove_clicked"]),
-                           base.old_candidates_clicked[pop[t]], prm.delta)
-        ku[t] = binom_icdf(keyed_uniform(seed, d[t], USE["remove_unclicked"]),
-                           base.old_candidates_unclicked[pop[t]], prm.delta)
+        kc[t] = binom_icdf(
+            keyed_uniform(seed, d[t], USE["remove_clicked"]),
+            base.old_candidates_clicked[pop[t]],
+            prm.delta,
+        )
+        ku[t] = binom_icdf(
+            keyed_uniform(seed, d[t], USE["remove_unclicked"]),
+            base.old_candidates_unclicked[pop[t]],
+            prm.delta,
+        )
     m1 = m - kc - ku
     cr = c - kc
     if prm.tau > 0 and t.size:
@@ -506,9 +592,19 @@ def simulate_draws(base: RankingBase, prm: RankingParameters, seed: int, total_d
     old_kept = m_old - kc - ku
     f_old = binom_icdf(keyed_uniform(seed, d, USE["feedback_old"]), old_kept, p_old)
     f_other = binom_icdf(keyed_uniform(seed, d, USE["feedback_other"]), m - m_old, p_other)
-    return Draws(draw_id=d, arm=arm, population_index=pop, clicks=cr + lift, inviews=m1,
-                 feedback=f_old + f_other, removed_clicked=kc, removed_unclicked=ku, lifted=lift,
-                 feedback_old=f_old, feedback_other=f_other)
+    return Draws(
+        draw_id=d,
+        arm=arm,
+        population_index=pop,
+        clicks=cr + lift,
+        inviews=m1,
+        feedback=f_old + f_other,
+        removed_clicked=kc,
+        removed_unclicked=ku,
+        lifted=lift,
+        feedback_old=f_old,
+        feedback_other=f_other,
+    )
 
 
 # ----------------------------------------------------------------------------- truths
@@ -524,8 +620,9 @@ def _binom_support(n: int, p: float, tail: float = 1e-13) -> tuple[np.ndarray, n
     return k, w / w.sum()
 
 
-def potential_outcomes(base: RankingBase, prm: RankingParameters,
-                       g: np.ndarray | None = None) -> pd.DataFrame:
+def potential_outcomes(
+    base: RankingBase, prm: RankingParameters, g: np.ndarray | None = None
+) -> pd.DataFrame:
     """Each population user's expected potential outcomes under control and treatment.
 
     Exact enumeration over the two removal binomials (``scipy.stats.binom.pmf``, tails beyond
@@ -547,38 +644,49 @@ def potential_outcomes(base: RankingBase, prm: RankingParameters,
     p_old, p_other = _feedback_probs(prm, g)
     removed = prm.delta * (base.old_candidates_clicked + base.old_candidates_unclicked)
     other = base.inviews - base.old_inviews
-    return pd.DataFrame({
-        "user_id": base.user_id,
-        "expected_inviews_control": base.inviews.astype(np.float64),
-        "expected_clicks_control": base.clicks.astype(np.float64),
-        "expected_user_rate_control": base.clicks / base.inviews,
-        "expected_feedback_control": p_old * base.old_inviews + p_other * other,
-        "expected_inviews_treatment": em1,
-        "expected_clicks_treatment": ec1,
-        "expected_user_rate_treatment": er1,
-        "expected_feedback_treatment": p_old * (base.old_inviews - removed) + p_other * other,
-        "guardrail_multiplier": g,
-    })
+    return pd.DataFrame(
+        {
+            "user_id": base.user_id,
+            "expected_inviews_control": base.inviews.astype(np.float64),
+            "expected_clicks_control": base.clicks.astype(np.float64),
+            "expected_user_rate_control": base.clicks / base.inviews,
+            "expected_feedback_control": p_old * base.old_inviews + p_other * other,
+            "expected_inviews_treatment": em1,
+            "expected_clicks_treatment": ec1,
+            "expected_user_rate_treatment": er1,
+            "expected_feedback_treatment": p_old * (base.old_inviews - removed) + p_other * other,
+            "guardrail_multiplier": g,
+        }
+    )
 
 
 def scenario_truths(po: pd.DataFrame) -> dict[str, float]:
     """The finite population's true relative lifts (spec sections 4 and 6)."""
     s = po.mean(numeric_only=True)
     return {
-        "expected_relative_lift_clicks_per_user": float(s.expected_clicks_treatment / s.expected_clicks_control - 1),
+        "expected_relative_lift_clicks_per_user": float(
+            s.expected_clicks_treatment / s.expected_clicks_control - 1
+        ),
         "expected_relative_lift_ctr": float(
             (s.expected_clicks_treatment / s.expected_inviews_treatment)
-            / (s.expected_clicks_control / s.expected_inviews_control) - 1),
+            / (s.expected_clicks_control / s.expected_inviews_control)
+            - 1
+        ),
         "expected_relative_lift_user_rate": float(
-            s.expected_user_rate_treatment / s.expected_user_rate_control - 1),
+            s.expected_user_rate_treatment / s.expected_user_rate_control - 1
+        ),
         "expected_relative_lift_inviews_per_user": float(
-            s.expected_inviews_treatment / s.expected_inviews_control - 1),
+            s.expected_inviews_treatment / s.expected_inviews_control - 1
+        ),
         "expected_relative_lift_feedback_per_user": float(
-            s.expected_feedback_treatment / s.expected_feedback_control - 1),
+            s.expected_feedback_treatment / s.expected_feedback_control - 1
+        ),
         "control_clicks_per_user": float(s.expected_clicks_control),
         "control_ctr": float(s.expected_clicks_control / s.expected_inviews_control),
         "control_user_rate": float(s.expected_user_rate_control),
-        "control_feedback_per_inview": float(s.expected_feedback_control / s.expected_inviews_control),
+        "control_feedback_per_inview": float(
+            s.expected_feedback_control / s.expected_inviews_control
+        ),
     }
 
 
@@ -613,9 +721,15 @@ class RankingExperimentData:
     draws: Draws
 
     def tables(self) -> dict[str, pd.DataFrame]:
-        return {"users": self.users, "assignments": self.assignments, "impressions": self.impressions,
-                "clicks": self.clicks, "feedback": self.feedback,
-                "telemetry_health": self.telemetry_health, "truth": self.truth}
+        return {
+            "users": self.users,
+            "assignments": self.assignments,
+            "impressions": self.impressions,
+            "clicks": self.clicks,
+            "feedback": self.feedback,
+            "telemetry_health": self.telemetry_health,
+            "truth": self.truth,
+        }
 
 
 def expand_inviews(base: RankingBase, dr: Draws, seed: int) -> pd.DataFrame:
@@ -636,7 +750,9 @@ def expand_inviews(base: RankingBase, dr: Draws, seed: int) -> pd.DataFrame:
     # removal: clicked and unclicked candidates are separate classes (Kc, Ku)
     cls = np.where(treat & cand, np.where(click, 0, 1), 2)
     rank = _rank_within(di * 3 + cls, keyed_uniform(seed, row_draw, USE["pick_removed"], pos))
-    removed = ((cls == 0) & (rank < dr.removed_clicked[di])) | ((cls == 1) & (rank < dr.removed_unclicked[di]))
+    removed = ((cls == 0) & (rank < dr.removed_clicked[di])) | (
+        (cls == 1) & (rank < dr.removed_unclicked[di])
+    )
     kept = ~removed
     # lift among retained unclicked in-views of treatment draws
     cls = np.where(treat & kept & ~click, 0, 1)
@@ -647,8 +763,17 @@ def expand_inviews(base: RankingBase, dr: Draws, seed: int) -> pd.DataFrame:
     cls = np.where(kept, np.where(old, 0, 1), 2)
     rank = _rank_within(di * 3 + cls, keyed_uniform(seed, row_draw, USE["pick_feedback"], pos))
     fb = ((cls == 0) & (rank < dr.feedback_old[di])) | ((cls == 1) & (rank < dr.feedback_other[di]))
-    return pd.DataFrame({"draw_id": row_draw, "position": pos, "inview_index": iv, "kept": kept,
-                         "click": click, "lifted": lifted, "feedback": fb})
+    return pd.DataFrame(
+        {
+            "draw_id": row_draw,
+            "position": pos,
+            "inview_index": iv,
+            "kept": kept,
+            "click": click,
+            "lifted": lifted,
+            "feedback": fb,
+        }
+    )
 
 
 def _jsonable(obj: Any) -> Any:
@@ -661,9 +786,13 @@ def _jsonable(obj: Any) -> Any:
     return obj
 
 
-def simulate_ranking_experiment(config: Mapping[str, Any], seed: int | None = None, *,
-                                base: RankingBase | None = None,
-                                repo_root: Path | str | None = None) -> RankingExperimentData:
+def simulate_ranking_experiment(
+    config: Mapping[str, Any],
+    seed: int | None = None,
+    *,
+    base: RankingBase | None = None,
+    repo_root: Path | str | None = None,
+) -> RankingExperimentData:
     """Generate the Case 02 tables and manifest for the committed scenario (D).
 
     ``base`` defaults to ``load_base(repo_root / config['base']['raw_dir'])``. The manifest's
@@ -671,7 +800,9 @@ def simulate_ranking_experiment(config: Mapping[str, Any], seed: int | None = No
     """
     if seed is None:
         if config.get("seed") is None:
-            raise ValueError("config seed is null: pass a seed (spec section 6 seed selection rule)")
+            raise ValueError(
+                "config seed is null: pass a seed (spec section 6 seed selection rule)"
+            )
         seed = int(config["seed"])
     design = config["design"]
     if dict(design.get("allocation", {})) != {"control": 0.5, "treatment": 0.5}:
@@ -689,32 +820,63 @@ def simulate_ranking_experiment(config: Mapping[str, Any], seed: int | None = No
     ex = expand_inviews(base, dr, seed)
 
     pop, arm_lbl = dr.population_index, np.asarray(ARMS)[dr.arm]
-    users = pd.DataFrame({"draw_id": dr.draw_id, "user_id": base.user_id[pop],
-                          "device_type": base.device_type[pop], "is_subscriber": base.is_subscriber[pop],
-                          "pre_period_clicks_21d": base.pre_period_clicks_21d[pop]})
-    assignments = pd.DataFrame({"draw_id": dr.draw_id, "arm": arm_lbl, "assigned_at": base.assigned_at[pop]})
+    users = pd.DataFrame(
+        {
+            "draw_id": dr.draw_id,
+            "user_id": base.user_id[pop],
+            "device_type": base.device_type[pop],
+            "is_subscriber": base.is_subscriber[pop],
+            "pre_period_clicks_21d": base.pre_period_clicks_21d[pop],
+        }
+    )
+    assignments = pd.DataFrame(
+        {"draw_id": dr.draw_id, "arm": arm_lbl, "assigned_at": base.assigned_at[pop]}
+    )
     k = ex[ex["kept"].to_numpy()].reset_index(drop=True)
     ivx = k["inview_index"].to_numpy()
     k_time = base.iv_time[ivx]
-    impressions = pd.DataFrame({"impression_id": np.arange(1, len(k) + 1, dtype=np.int64),
-                                "draw_id": k["draw_id"].to_numpy(), "article_id": base.iv_article_id[ivx],
-                                "impression_time": k_time, "article_age_hours": base.iv_age_hours[ivx]})
+    impressions = pd.DataFrame(
+        {
+            "impression_id": np.arange(1, len(k) + 1, dtype=np.int64),
+            "draw_id": k["draw_id"].to_numpy(),
+            "article_id": base.iv_article_id[ivx],
+            "impression_time": k_time,
+            "article_age_hours": base.iv_age_hours[ivx],
+        }
+    )
     ck = k["click"].to_numpy()
-    u_delay = keyed_uniform(seed, k["draw_id"].to_numpy()[ck], USE["delay"], k["position"].to_numpy()[ck])
-    clicks = pd.DataFrame({"impression_id": impressions["impression_id"].to_numpy()[ck],
-                           "draw_id": k["draw_id"].to_numpy()[ck], "clicked_at": k_time[ck]})
-    clicks["received_at"] = clicks["clicked_at"] + pd.to_timedelta(d_min + u_delay * (d_max - d_min), "h")
+    u_delay = keyed_uniform(
+        seed, k["draw_id"].to_numpy()[ck], USE["delay"], k["position"].to_numpy()[ck]
+    )
+    clicks = pd.DataFrame(
+        {
+            "impression_id": impressions["impression_id"].to_numpy()[ck],
+            "draw_id": k["draw_id"].to_numpy()[ck],
+            "clicked_at": k_time[ck],
+        }
+    )
+    clicks["received_at"] = clicks["clicked_at"] + pd.to_timedelta(
+        d_min + u_delay * (d_max - d_min), "h"
+    )
     fb = k["feedback"].to_numpy()
-    u_act = keyed_uniform(seed, k["draw_id"].to_numpy()[fb], USE["action"], k["position"].to_numpy()[fb])
-    feedback = pd.DataFrame({"impression_id": impressions["impression_id"].to_numpy()[fb],
-                             "draw_id": k["draw_id"].to_numpy()[fb],
-                             "action": np.asarray(FEEDBACK_ACTIONS)[(u_act >= 0.5).astype(int)],
-                             "feedback_at": k_time[fb]})
+    u_act = keyed_uniform(
+        seed, k["draw_id"].to_numpy()[fb], USE["action"], k["position"].to_numpy()[fb]
+    )
+    feedback = pd.DataFrame(
+        {
+            "impression_id": impressions["impression_id"].to_numpy()[fb],
+            "draw_id": k["draw_id"].to_numpy()[fb],
+            "action": np.asarray(FEEDBACK_ACTIONS)[(u_act >= 0.5).astype(int)],
+            "feedback_at": k_time[fb],
+        }
+    )
     day = pd.to_datetime(k_time).normalize()
     arm_code = dr.arm[k["draw_id"].to_numpy()]
-    telemetry_health = (pd.DataFrame({"day": day, "arm_code": arm_code, "click": ck.astype(int)})
-                        .groupby(["day", "arm_code"], as_index=False)
-                        .agg(inviews=("click", "size"), clicks=("click", "sum")))
+    telemetry_health = (
+        pd.DataFrame({"day": day, "arm_code": arm_code, "click": ck.astype(int)})
+        .groupby(["day", "arm_code"], as_index=False)
+        .agg(inviews=("click", "size"), clicks=("click", "sum"))
+    )
     telemetry_health.insert(1, "arm", np.asarray(ARMS)[telemetry_health["arm_code"].to_numpy()])
     telemetry_health = telemetry_health.drop(columns="arm_code")
     truth = po.rename(columns={"user_id": "user_id"})
@@ -737,15 +899,27 @@ def simulate_ranking_experiment(config: Mapping[str, Any], seed: int | None = No
             "draws_control": int(total - dr.arm.sum()),
             "draws_per_population_user": float(total / base.n_users),
         },
-        "row_counts": {name: int(len(t)) for name, t in {
-            "users": users, "assignments": assignments, "impressions": impressions, "clicks": clicks,
-            "feedback": feedback, "telemetry_health": telemetry_health, "truth": truth}.items()},
+        "row_counts": {
+            name: int(len(t))
+            for name, t in {
+                "users": users,
+                "assignments": assignments,
+                "impressions": impressions,
+                "clicks": clicks,
+                "feedback": feedback,
+                "telemetry_health": telemetry_health,
+                "truth": truth,
+            }.items()
+        },
     }
-    return RankingExperimentData(users, assignments, impressions, clicks, feedback, telemetry_health,
-                                 truth, manifest, dr)
+    return RankingExperimentData(
+        users, assignments, impressions, clicks, feedback, telemetry_health, truth, manifest, dr
+    )
 
 
-def write_case_data(data: RankingExperimentData, generated_dir: Path, manifest_path: Path) -> dict[str, Any]:
+def write_case_data(
+    data: RankingExperimentData, generated_dir: Path, manifest_path: Path
+) -> dict[str, Any]:
     """Write the tables (Parquet, under an untracked directory) and the aggregate manifest."""
     generated_dir.mkdir(parents=True, exist_ok=True)
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -753,6 +927,12 @@ def write_case_data(data: RankingExperimentData, generated_dir: Path, manifest_p
     for name, frame in data.tables().items():
         frame.to_parquet(generated_dir / f"{name}.parquet", index=False)
         checksums[name] = content_sha256(frame)
-    manifest = {**data.manifest, "files": {k: f"{k}.parquet" for k in checksums}, "content_sha256": checksums}
-    manifest_path.write_text(json.dumps(manifest, indent=2, default=str) + "\n", encoding="utf-8", newline="\n")
+    manifest = {
+        **data.manifest,
+        "files": {k: f"{k}.parquet" for k in checksums},
+        "content_sha256": checksums,
+    }
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, default=str) + "\n", encoding="utf-8", newline="\n"
+    )
     return manifest
