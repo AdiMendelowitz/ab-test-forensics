@@ -72,8 +72,21 @@ def cmd_run(root: Path, case: str) -> int:
     ]
     completed = subprocess.run(cmd, cwd=nb.parent, check=False)
     if completed.returncode == 0:
+        normalise_line_endings(nb)
         print(f"{case}: executed {nb.relative_to(root)}")
     return completed.returncode
+
+
+def normalise_line_endings(path: Path) -> None:
+    """Rewrite ``path`` with LF line endings.
+
+    nbconvert writes the notebook in text mode, so on Windows every line ends in CRLF. A notebook is
+    JSON, whose strings escape newlines, so a raw CRLF can only be a line separator and the
+    replacement leaves the content unchanged.
+    """
+    raw = path.read_bytes()
+    if b"\r\n" in raw:
+        path.write_bytes(raw.replace(b"\r\n", b"\n"))
 
 
 OC_CONTRASTS = (
@@ -192,7 +205,15 @@ def cmd_oc(
     every invocation makes progress and a run can overshoot the budget by one unit.
     """
     if case == "case02":
-        return _cmd_oc_case02(root, case, replicates=replicates, sweep_replicates=sweep_replicates, seed=seed, jobs=jobs, max_seconds=max_seconds)
+        return _cmd_oc_case02(
+            root,
+            case,
+            replicates=replicates,
+            sweep_replicates=sweep_replicates,
+            seed=seed,
+            jobs=jobs,
+            max_seconds=max_seconds,
+        )
     import hashlib
     import json
     import os
@@ -382,7 +403,9 @@ def _cmd_simulate_case02(root, case, seed):
         return 2
     base = ri.load_base(root / config["base"]["raw_dir"])
     data = ri.simulate_ranking_experiment(config, seed=seed, base=base)
-    manifest = ri.write_case_data(data, root / "data" / "generated" / case, root / "data" / "manifests" / f"{case}.json")
+    manifest = ri.write_case_data(
+        data, root / "data" / "generated" / case, root / "data" / "manifests" / f"{case}.json"
+    )
     counts = ", ".join(f"{k}={v:,}" for k, v in manifest["row_counts"].items())
     print(f"{case}: seed={manifest['seed']} wrote data/generated/{case}/ ({counts})")
     print(f"manifest: data/manifests/{case}.json")
@@ -395,18 +418,31 @@ def _cmd_oc_case02(root, case, *, replicates, sweep_replicates, seed, jobs, max_
     from abforensics.simulation.oc_case02 import run_oc_case02
 
     if sweep_replicates is not None or max_seconds is not None:
-        print("abf oc case02: --sweep-replicates and --max-seconds are not supported yet", file=sys.stderr)
+        print(
+            "abf oc case02: --sweep-replicates and --max-seconds are not supported yet",
+            file=sys.stderr,
+        )
         return 2
     config = load_config(root, case)
     oc = config["operating_characteristics"]
     raw_dir = root / config["base"]["raw_dir"]
     out_dir = root / "results" / "case02"
     out_dir.mkdir(parents=True, exist_ok=True)
-    meta = run_oc_case02(config, ri.load_base(raw_dir), replicates=int(replicates or oc["replicates"]), oc_seed=int(seed if seed is not None else oc["seed"]), workers=int(jobs or oc["workers"]), out_dir=out_dir, raw_dir=raw_dir)
+    meta = run_oc_case02(
+        config,
+        ri.load_base(raw_dir),
+        replicates=int(replicates or oc["replicates"]),
+        oc_seed=int(seed if seed is not None else oc["seed"]),
+        workers=int(jobs or oc["workers"]),
+        out_dir=out_dir,
+        raw_dir=raw_dir,
+    )
     total = time.perf_counter() - t0
     limit = oc["time_limit_minutes"]
     verdict = "PASS" if total <= 60 * limit else "FAIL"
-    print(f"abf oc case02: B={meta['replicates']}, workers={meta['workers']}, command wall-clock {total} s ({total/60} min), harness {meta['wall_clock_seconds']} s, against {limit} min: {verdict}")
+    print(
+        f"abf oc case02: B={meta['replicates']}, workers={meta['workers']}, command wall-clock {total} s ({total / 60} min), harness {meta['wall_clock_seconds']} s, against {limit} min: {verdict}"
+    )
     for name in ("oc_truths.csv", "oc_scenarios.csv", "oc_rule.csv", "oc_meta.json"):
         print(out_dir / name)
     return 0

@@ -81,16 +81,31 @@ def _jackknife_var(c: np.ndarray, m: np.ndarray, log: bool) -> float:
 
 
 def ratio_of_sums_arrays(
-    numerator_treatment, denominator_treatment, numerator_control, denominator_control,
-    *, estimand: str, numerator: str = "numerator", denominator: str = "denominator",
-    unit_col: str = "unit", alpha: float = 0.05, method: str = "delta",
-    resamples: int = 1000, seed: int | None = None, interval: str = "percentile",
+    numerator_treatment,
+    denominator_treatment,
+    numerator_control,
+    denominator_control,
+    *,
+    estimand: str,
+    numerator: str = "numerator",
+    denominator: str = "denominator",
+    unit_col: str = "unit",
+    alpha: float = 0.05,
+    method: str = "delta",
+    resamples: int = 1000,
+    seed: int | None = None,
+    interval: str = "percentile",
     warnings: Sequence[str] = (),
 ) -> RatioOfSumsResult:
     """Array kernel behind ``ratio_of_sums``: each element is one independent unit (a user, or a draw in the Case 02 harness). The harness calls it directly with per-draw arrays; ``ratio_of_sums`` aggregates a frame to units and calls it."""
     c_t, m_t, c_c, m_c = (
-        np.asarray(x, dtype=np.float64) for x in
-        (numerator_treatment, denominator_treatment, numerator_control, denominator_control)
+        np.asarray(x, dtype=np.float64)
+        for x in (
+            numerator_treatment,
+            denominator_treatment,
+            numerator_control,
+            denominator_control,
+        )
     )
     if method not in METHODS:
         raise ValueError(f"method must be one of {METHODS}; got {method!r}")
@@ -125,8 +140,11 @@ def ratio_of_sums_arrays(
         else:
             se_t = math.sqrt(_jackknife_var(c_t, m_t, False))
             se_c = math.sqrt(_jackknife_var(c_c, m_c, False))
-            var_log = (_jackknife_var(c_t, m_t, True) + _jackknife_var(c_c, m_c, True)
-                       if r_t > 0 and r_c > 0 else math.nan)
+            var_log = (
+                _jackknife_var(c_t, m_t, True) + _jackknife_var(c_c, m_c, True)
+                if r_t > 0 and r_c > 0
+                else math.nan
+            )
         se = math.sqrt(se_t**2 + se_c**2)
         ci = (diff - z * se, diff + z * se)
         if math.isfinite(var_log):
@@ -142,18 +160,45 @@ def ratio_of_sums_arrays(
         if not r_c > 0:
             raise ValueError("the control ratio is zero; the relative lift is undefined")
         se_t, se_c = _delta_se(c_t, m_t), _delta_se(c_c, m_c)
-        cols = {"num_t": f"{numerator}__t", "den_t": f"{denominator}__t",
-                "num_c": f"{numerator}__c", "den_c": f"{denominator}__c"}
-        wide = pd.concat([
-            pd.DataFrame({unit_col: np.arange(len(c_t)),
-                          "__arm": treatment, cols["num_t"]: c_t, cols["den_t"]: m_t,
-                          cols["num_c"]: 0.0, cols["den_c"]: 0.0}),
-            pd.DataFrame({unit_col: np.arange(len(c_t), len(c_t) + len(c_c)),
-                          "__arm": control, cols["num_t"]: 0.0, cols["den_t"]: 0.0,
-                          cols["num_c"]: c_c, cols["den_c"]: m_c}),
-        ], ignore_index=True)
-        common = dict(resamples=resamples, seed=seed, estimand=estimand, interval=interval,
-                      alpha=alpha, strata_col="__arm")
+        cols = {
+            "num_t": f"{numerator}__t",
+            "den_t": f"{denominator}__t",
+            "num_c": f"{numerator}__c",
+            "den_c": f"{denominator}__c",
+        }
+        wide = pd.concat(
+            [
+                pd.DataFrame(
+                    {
+                        unit_col: np.arange(len(c_t)),
+                        "__arm": treatment,
+                        cols["num_t"]: c_t,
+                        cols["den_t"]: m_t,
+                        cols["num_c"]: 0.0,
+                        cols["den_c"]: 0.0,
+                    }
+                ),
+                pd.DataFrame(
+                    {
+                        unit_col: np.arange(len(c_t), len(c_t) + len(c_c)),
+                        "__arm": control,
+                        cols["num_t"]: 0.0,
+                        cols["den_t"]: 0.0,
+                        cols["num_c"]: c_c,
+                        cols["den_c"]: m_c,
+                    }
+                ),
+            ],
+            ignore_index=True,
+        )
+        common = dict(
+            resamples=resamples,
+            seed=seed,
+            estimand=estimand,
+            interval=interval,
+            alpha=alpha,
+            strata_col="__arm",
+        )
         # Same seed and frame: both calls draw identical resamples, so the two distributions
         # are paired.
         b_rel = cluster_bootstrap(wide, unit_col, _Contrast(cols, "relative lift"), **common)
@@ -270,10 +315,22 @@ def ratio_of_sums(
     m_t = parts[treatment][denominator].to_numpy(float)
     c_c = parts[control][numerator].to_numpy(float)
     m_c = parts[control][denominator].to_numpy(float)
-    return ratio_of_sums_arrays(c_t, m_t, c_c, m_c, estimand=estimand,
-                                numerator=numerator, denominator=denominator, unit_col=unit_col,
-                                alpha=alpha, method=method, resamples=resamples, seed=seed,
-                                interval=interval, warnings=warnings)
+    return ratio_of_sums_arrays(
+        c_t,
+        m_t,
+        c_c,
+        m_c,
+        estimand=estimand,
+        numerator=numerator,
+        denominator=denominator,
+        unit_col=unit_col,
+        alpha=alpha,
+        method=method,
+        resamples=resamples,
+        seed=seed,
+        interval=interval,
+        warnings=warnings,
+    )
 
 
 def naive_event_rate(
@@ -292,14 +349,21 @@ def naive_event_rate(
     p-value are wrong when impressions are clustered within users.
     """
     result = difference_in_proportions(
-        clicks_t, impressions_t, clicks_c, impressions_c,
-        estimand=estimand, analysis_unit="impression", population="all impressions",
+        clicks_t,
+        impressions_t,
+        clicks_c,
+        impressions_c,
+        estimand=estimand,
+        analysis_unit="impression",
+        population="all impressions",
         alpha=alpha,
     )
     return dataclasses.replace(
         result,
-        assumptions=(*result.assumptions[:1],
-                     "impressions are independent (violated when they cluster within users)",
-                     *result.assumptions[2:]),
+        assumptions=(
+            *result.assumptions[:1],
+            "impressions are independent (violated when they cluster within users)",
+            *result.assumptions[2:],
+        ),
         warnings=(NAIVE_WARNING, *result.warnings),
     )
