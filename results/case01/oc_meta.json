@@ -1,7 +1,7 @@
 {
   "abforensics_version": "0.1.0",
   "case": "case01",
-  "code_sha256": "c559d0099da0ee1833b8a310e4153db3fa9e603a103a1aa19c8e6b40570e7155",
+  "code_sha256": "eccfcf86373e8989afb0b2e707dfc6dd2e9d69822599c8aef94b536b877aa029",
   "library_versions": {
     "numpy": "2.5.3",
     "pandas": "3.0.6",
@@ -11,81 +11,81 @@
   "replicates_scenarios_and_loss_sweep": 5000,
   "scenario_lift_rendered": 0.03,
   "seed": 20261001,
-  "summary_machine": "Windows-11-10.0.26200-SP0",
-  "summary_python": "3.14.0",
-  "total_unit_seconds": 1256.4,
+  "summary_machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "summary_python": "3.14.4",
+  "total_unit_seconds": 712.4,
   "units": {
     "offset_-0.1": {
-      "file": "offset_-0.1_b297bb737450e190.parquet",
-      "jobs": 2,
-      "key": "b297bb737450e190e3b877629164002b2dd1c58623b15e154db386e5ce043fe3",
-      "machine": "Linux-6.18.44-fc-v37-x86_64-with-glibc2.39",
-      "python": "3.14.0rc2",
+      "file": "offset_-0.1_90755c8782e5e188.parquet",
+      "jobs": 8,
+      "key": "90755c8782e5e18842036ef07f350412dec35646d2ca7a26785415fe84d45660",
+      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+      "python": "3.14.4",
       "replicates": 1000,
-      "seconds": 78.9
+      "seconds": 33.6
     },
     "offset_-0.2": {
-      "file": "offset_-0.2_d41912016f4bc4fb.parquet",
-      "jobs": 2,
-      "key": "d41912016f4bc4fbed3ebeda92643fb8cf0b97bb55d545faff7214911e8ebadf",
-      "machine": "Linux-6.18.44-fc-v37-x86_64-with-glibc2.39",
-      "python": "3.14.0rc2",
+      "file": "offset_-0.2_d5407114a8c5df8c.parquet",
+      "jobs": 8,
+      "key": "d5407114a8c5df8c06fbc393d89bfe89a9dd9b36eeefd15e18b7fed05afac96e",
+      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+      "python": "3.14.4",
       "replicates": 1000,
-      "seconds": 78.8
+      "seconds": 38.1
     },
     "offset_-0.4": {
-      "file": "offset_-0.4_01f4a2f0c8e50376.parquet",
-      "jobs": 2,
-      "key": "01f4a2f0c8e503767e61efad6df0e50cc984e66fd6b7ed51fddeda61e706cbe6",
-      "machine": "Linux-6.18.44-fc-v37-x86_64-with-glibc2.39",
-      "python": "3.14.0rc2",
+      "file": "offset_-0.4_0c8f5f075887d071.parquet",
+      "jobs": 8,
+      "key": "0c8f5f075887d0715be46c8af1075d43f43679985409dbee6eb5fa31b8f0b7b6",
+      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+      "python": "3.14.4",
       "replicates": 1000,
-      "seconds": 78.5
+      "seconds": 35.7
     },
     "offset_-0.5": {
-      "file": "offset_-0.5_4fcbfe3f68ce0cd8.parquet",
-      "jobs": 2,
-      "key": "4fcbfe3f68ce0cd8a091a97a545fb88f285dc6552a3522120b9d22f6d6d0b5f6",
-      "machine": "Linux-6.18.44-fc-v37-x86_64-with-glibc2.39",
-      "python": "3.14.0rc2",
+      "file": "offset_-0.5_9697175b00c14113.parquet",
+      "jobs": 8,
+      "key": "9697175b00c141132e42da02e4fe36fb406bb46aefc0bcf953f748054134b894",
+      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+      "python": "3.14.4",
       "replicates": 1000,
-      "seconds": 72.5
+      "seconds": 37.5
     },
     "offset_-0.6": {
-      "file": "offset_-0.6_74e8fbb98514bb3a.parquet",
-      "jobs": 2,
-      "key": "74e8fbb98514bb3af4010ebb5e49f1c9b314f4d5da3a6b95556b2dc24725c430",
-      "machine": "Linux-6.18.44-fc-v37-x86_64-with-glibc2.39",
-      "python": "3.14.0rc2",
+      "file": "offset_-0.6_299346b6a58d2dc8.parquet",
+      "jobs": 8,
+      "key": "299346b6a58d2dc85cf50f1942c21407c48e0fc4b7d7d7c0ccda9f9b97e54056",
+      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+      "python": "3.14.4",
       "replicates": 1000,
-      "seconds": 72.2
+      "seconds": 44.1
     },
     "offset_0.0": {
-      "file": "offset_0.0_c82ff387c5fefddd.parquet",
-      "jobs": 2,
-      "key": "c82ff387c5fefdddfb38d55f9210ceb6a4c285d8d0c61ebb9180086d82ff42c1",
-      "machine": "Linux-6.18.44-fc-v37-x86_64-with-glibc2.39",
-      "python": "3.14.0rc2",
+      "file": "offset_0.0_238c6120bd3e0298.parquet",
+      "jobs": 8,
+      "key": "238c6120bd3e0298f40dc906f61c3695bcbc87415bf064b03a3afab7deb5cc43",
+      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+      "python": "3.14.4",
       "replicates": 1000,
-      "seconds": 79.8
+      "seconds": 34.9
     },
     "scenarios_effect": {
-      "file": "scenarios_effect_ff9b0e7d3bc58f0e.parquet",
-      "jobs": 2,
-      "key": "ff9b0e7d3bc58f0e76d505f65c6735065d626bc00ea3565844c4eb6551edc821",
-      "machine": "Linux-6.18.44-fc-v37-x86_64-with-glibc2.39",
-      "python": "3.14.0rc2",
+      "file": "scenarios_effect_a76ff6b6d6d91a5a.parquet",
+      "jobs": 8,
+      "key": "a76ff6b6d6d91a5a3091946a0023ae0c17ba3133624638256e5e4dc7051a195b",
+      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+      "python": "3.14.4",
       "replicates": 5000,
-      "seconds": 406.9
+      "seconds": 255.8
     },
     "scenarios_null": {
-      "file": "scenarios_null_ad7a51bf67b26ecd.parquet",
-      "jobs": 2,
-      "key": "ad7a51bf67b26ecd5bc1391ab88b2abac90feda2d9965b8cf74e44a3902c5097",
-      "machine": "Linux-6.18.44-fc-v37-x86_64-with-glibc2.39",
-      "python": "3.14.0rc2",
+      "file": "scenarios_null_05d94509f35dbfc2.parquet",
+      "jobs": 8,
+      "key": "05d94509f35dbfc2ad025e971f52f4585d3c85b216444af3e7a99460afe7ffbe",
+      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+      "python": "3.14.4",
       "replicates": 5000,
-      "seconds": 388.8
+      "seconds": 232.7
     }
   }
 }
