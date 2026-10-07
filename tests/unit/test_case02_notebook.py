@@ -1,4 +1,4 @@
-"""Case 02 notebook: cmd_run wiring, the banned-word rule of spec section 14, the two-minute line."""
+"""Case 02 notebook: cmd_run wiring, spec section 14's banned-word rule, the two-minute line."""
 
 from __future__ import annotations
 

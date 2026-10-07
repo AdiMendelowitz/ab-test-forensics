@@ -1,4 +1,8 @@
-"""Run the Case 02 scenario table of spec section 10 on the finite population, with truths computed before any replicate and every rate reported with its Monte Carlo standard error."""
+"""Run the Case 02 scenario table of spec section 10 on the finite population.
+
+Truths are computed before any replicate, and every rate is reported with its Monte Carlo standard
+error.
+"""
 
 import json
 import math
@@ -240,7 +244,9 @@ def _run_chunk(args):
 
 def summarise(rows: pd.DataFrame, truths: dict[str, dict]) -> tuple[pd.DataFrame, pd.DataFrame]:
     rows = rows.copy()
-    rows["true_effect"] = [truths[s][TRUTH_KEY[e]] for s, e in zip(rows.scenario, rows.estimand)]
+    rows["true_effect"] = [
+        truths[s][TRUTH_KEY[e]] for s, e in zip(rows.scenario, rows.estimand, strict=True)
+    ]
     rows["covers"] = (rows.ci_low <= rows.true_effect) & (rows.true_effect <= rows.ci_high)
     rows["reject"] = np.where(
         rows.estimator == "bootstrap_e2",

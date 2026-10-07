@@ -341,7 +341,7 @@ def test_no_tracked_file_carries_per_user_data() -> None:
     assert not offenders, offenders
 
 
-# --- the real base (skipped without the download) ----------------------------------------------------
+# --- the real base (skipped without the download) -------------------------------------------------
 
 
 @pytest.mark.skipif(

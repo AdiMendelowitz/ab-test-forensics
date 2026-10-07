@@ -2,13 +2,22 @@
 
 from __future__ import annotations
 
+import dataclasses
+import math
+from fractions import Fraction
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from abforensics.inference import difference_in_proportions
 from abforensics.metrics import naive_event_rate, ratio_of_sums
-from abforensics.metrics.ratio import NAIVE_WARNING
+from abforensics.metrics.ratio import (
+    NAIVE_WARNING,
+    _delta_se,
+    _jackknife_var,
+    ratio_of_sums_arrays,
+)
 
 EST = "impression-weighted click-through rate, ratio of expected totals"
 
@@ -55,7 +64,7 @@ def test_delta_variance_equals_jackknife_to_first_order() -> None:
     assert j.se_ratio_treatment == pytest.approx(d.se_ratio_treatment, rel=0.005)
     assert j.se_ratio_control == pytest.approx(d.se_ratio_control, rel=0.005)
     assert j.standard_error == pytest.approx(d.standard_error, rel=0.005)
-    for a, b in zip(j.relative_confidence_interval, d.relative_confidence_interval):
+    for a, b in zip(j.relative_confidence_interval, d.relative_confidence_interval, strict=True):
         assert a == pytest.approx(b, abs=1e-4)
 
 
@@ -127,13 +136,6 @@ def test_input_errors() -> None:
         ratio_of_sums(f, "clicks", "views", "user_id", "arm", estimand=EST)
 
 
-import dataclasses
-import math
-from fractions import Fraction
-
-from abforensics.metrics.ratio import _delta_se, _jackknife_var, ratio_of_sums_arrays
-
-
 def _unit_arrays(seed, n):
     rng = np.random.default_rng(seed)
     arrays = []
@@ -182,7 +184,7 @@ def test_delta_se_matches_exact_rational():
     n = len(c)
     r = Fraction(sum(map(int, c)), sum(map(int, m)))
     mbar = Fraction(sum(map(int, m)), n)
-    var = sum((Fraction(int(ci)) - r * int(mi)) ** 2 for ci, mi in zip(c, m)) / (
+    var = sum((Fraction(int(ci)) - r * int(mi)) ** 2 for ci, mi in zip(c, m, strict=True)) / (
         (n - 1) * n * mbar**2
     )
     assert math.isclose(_delta_se(c, m) ** 2, float(var), rel_tol=1e-12)
@@ -218,7 +220,8 @@ def test_kernel_is_invariant_to_unit_order():
                 assert math.isclose(value, b[name], rel_tol=1e-12, abs_tol=0)
             elif isinstance(value, tuple) and value and isinstance(value[0], float):
                 assert all(
-                    math.isclose(x, y, rel_tol=1e-12, abs_tol=0) for x, y in zip(value, b[name])
+                    math.isclose(x, y, rel_tol=1e-12, abs_tol=0)
+                    for x, y in zip(value, b[name], strict=True)
                 )
             else:
                 assert value == b[name]

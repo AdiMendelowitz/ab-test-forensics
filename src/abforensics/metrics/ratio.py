@@ -97,7 +97,11 @@ def ratio_of_sums_arrays(
     interval: str = "percentile",
     warnings: Sequence[str] = (),
 ) -> RatioOfSumsResult:
-    """Array kernel behind ``ratio_of_sums``: each element is one independent unit (a user, or a draw in the Case 02 harness). The harness calls it directly with per-draw arrays; ``ratio_of_sums`` aggregates a frame to units and calls it."""
+    """Array kernel behind ``ratio_of_sums``: each element is one independent unit.
+
+    A unit is a user, or a draw in the Case 02 harness. The harness calls this kernel directly with
+    per-draw arrays; ``ratio_of_sums`` aggregates a frame to units and calls it.
+    """
     c_t, m_t, c_c, m_c = (
         np.asarray(x, dtype=np.float64)
         for x in (

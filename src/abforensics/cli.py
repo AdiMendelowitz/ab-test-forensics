@@ -441,7 +441,9 @@ def _cmd_oc_case02(root, case, *, replicates, sweep_replicates, seed, jobs, max_
     limit = oc["time_limit_minutes"]
     verdict = "PASS" if total <= 60 * limit else "FAIL"
     print(
-        f"abf oc case02: B={meta['replicates']}, workers={meta['workers']}, command wall-clock {total} s ({total / 60} min), harness {meta['wall_clock_seconds']} s, against {limit} min: {verdict}"
+        f"abf oc case02: B={meta['replicates']}, workers={meta['workers']}, "
+        f"command wall-clock {total} s ({total / 60} min), "
+        f"harness {meta['wall_clock_seconds']} s, against {limit} min: {verdict}"
     )
     for name in ("oc_truths.csv", "oc_scenarios.csv", "oc_rule.csv", "oc_meta.json"):
         print(out_dir / name)

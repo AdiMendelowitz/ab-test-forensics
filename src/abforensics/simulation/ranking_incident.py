@@ -890,7 +890,9 @@ def simulate_ranking_experiment(
         "parameters": _jsonable(prm.__dict__),
         "config": _jsonable(config),
         **truths,
-        "truths_are": "finite-population means of expected potential outcomes, computed before any draw",
+        "truths_are": (
+            "finite-population means of expected potential outcomes, computed before any draw"
+        ),
         "base": _jsonable(raw_summary),
         "raw_md5": _jsonable(base.summary.get("raw_md5", {})),
         "realised": {

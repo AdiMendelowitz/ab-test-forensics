@@ -59,7 +59,7 @@ def test_run_is_chunk_invariant(config, base, tmp_path):
     )
 
 
-def test_bootstrap_called_once_per_replicate_in_A_and_D(config, base, tmp_path, monkeypatch):
+def test_bootstrap_called_once_per_replicate_in_a_and_d(config, base, tmp_path, monkeypatch):
     original = oc.cluster_bootstrap
     calls = []
 
