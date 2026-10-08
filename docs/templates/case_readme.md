@@ -35,6 +35,7 @@ Decision rule (pre-declared): <thresholds and actions>.
 - [ ] Missingness may be differential
 - [ ] Guardrail breach or guardrail unmeasurable
 - [ ] Duration insufficient for delayed outcomes
+- [ ] Metric denominator is a post-treatment quantity
 
 ## Assumptions and unresolved risks
 <Stated, not hidden.>
