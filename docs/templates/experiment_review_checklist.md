@@ -16,6 +16,7 @@ No overall score. Each item is done, failed, unknown or not applicable, with a n
 - Invariants on the analysed population
 - Event-arrival completeness by arm
 - Differential missingness assessed
+- Metric denominator is a post-treatment quantity
 
 ## Analysis
 - Estimator matches the declared estimand and analysis unit
