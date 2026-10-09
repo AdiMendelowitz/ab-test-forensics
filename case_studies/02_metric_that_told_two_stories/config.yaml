@@ -94,7 +94,8 @@ parametric_generator:
   old_share_concentration: 9
   calibration_seed: 20261009
   validation_seed: 20261010
-  population_seed: 20261011
+  validation_population_seed: 20262010
+  population_seed: 20263011
   calibration_populations: 20
   calibration_splits: 100
   validation_populations: 20
