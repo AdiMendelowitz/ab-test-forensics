@@ -165,6 +165,182 @@ def binom_icdf(u: Any, n: Any, p: Any) -> np.ndarray:
 
 
 @dataclass(frozen=True)
+class ParametricCounts:
+    """Count-level population of ADR-07 Amendment 1, G1 to G6."""
+
+    inviews: np.ndarray
+    clicks: np.ndarray
+    old_inviews: np.ndarray
+    old_clicks: np.ndarray
+    decile: np.ndarray
+
+
+def parametric_uniforms(settings: Mapping[str, Any], seed: int) -> np.ndarray:
+    """Fixed independent uniforms for G11 common random numbers."""
+    return np.random.default_rng(seed).random((7, int(settings["population_users"])))
+
+
+def prepare_parametric_draws(
+    settings: Mapping[str, Any],
+    seed: int,
+    *,
+    r: float | None = None,
+    depth_off: bool = False,
+    uniforms: np.ndarray | None = None,
+) -> dict[str, np.ndarray]:
+    """Cache G1 to G3 and G4's normal draw, independently of theta (G11)."""
+    if uniforms is None:
+        uniforms = parametric_uniforms(settings, seed)
+    mu, sd = float(settings["mean_inviews"]), float(settings["sd_inviews"])
+    minimum = int(settings["minimum_inviews"])
+    dispersion = (mu - minimum) ** 2 / (sd**2 - (mu - minimum)) if r is None else r
+    m = minimum + stats.nbinom.ppf(
+        uniforms[0], dispersion, dispersion / (dispersion + mu - minimum)
+    ).astype(np.int64)
+    rank = np.empty(len(m), dtype=np.int64)
+    rank[np.argsort(m, kind="stable")] = np.arange(len(m))
+    decile = 10 * rank // len(m)
+    share = np.asarray(settings["old_shares"])[decile]
+    concentration = float(settings["old_share_concentration"])
+    pi = (
+        np.full(len(m), 1 / 3)
+        if depth_off
+        else stats.beta.ppf(uniforms[1], concentration * share, concentration * (1 - share))
+    )
+    return {
+        "m": m,
+        "old": binom_icdf(uniforms[2], m, pi),
+        "decile": decile,
+        "depth": np.log(m) - np.log(m).mean(),
+        "normal": stats.norm.ppf(uniforms[3]),
+        "uniforms": uniforms,
+    }
+
+
+def parametric_counts(
+    settings: Mapping[str, Any],
+    *,
+    seed: int | None = None,
+    uniforms: np.ndarray | None = None,
+    theta: Any = None,
+    sigma: float | None = None,
+    r: float | None = None,
+    depth_off: bool = False,
+    prepared: Mapping[str, np.ndarray] | None = None,
+) -> ParametricCounts:
+    """G1 to G6, with G9 sweep overrides and G10 depth off."""
+    from scipy.special import expit
+
+    if prepared is None:
+        prepared = prepare_parametric_draws(
+            settings,
+            int(settings["population_seed"] if seed is None else seed),
+            r=r,
+            depth_off=depth_off,
+            uniforms=uniforms,
+        )
+    uniforms = prepared["uniforms"]
+    a, b, sig, gamma = (
+        [settings["theta"][name] for name in ("a", "b", "sigma", "gamma")]
+        if theta is None
+        else theta
+    )
+    if sigma is not None:
+        sig = sigma
+    m, old, decile = prepared["m"], prepared["old"], prepared["decile"]
+    if depth_off:
+        b, sig = 0.0, 0.0
+    eta = a + b * prepared["depth"] + sig * prepared["normal"]
+    c_other = binom_icdf(uniforms[4], m - old, expit(eta))
+    c_old = binom_icdf(uniforms[5], old, expit(eta + gamma))
+    zero = c_other + c_old == 0
+    added_old = zero & (uniforms[6] < old / m)
+    c_old = c_old + added_old
+    c_other = c_other + (zero & ~added_old)
+    return ParametricCounts(m, c_other + c_old, old, c_old, decile)
+
+
+def parametric_statistics(counts: ParametricCounts, *, splits: int, seed: int) -> dict[str, float]:
+    """G11/G12 targets, using package delta and naive standard errors."""
+    from abforensics.metrics.ratio import naive_event_rate, ratio_of_sums_arrays
+
+    c, m = counts.clicks, counts.inviews
+    rng = np.random.default_rng(seed)
+    ratios = []
+    for _ in range(splits):
+        arm = rng.random(len(m)) < 0.5
+        ct, mt, cc, mc = c[arm], m[arm], c[~arm], m[~arm]
+        delta = ratio_of_sums_arrays(ct, mt, cc, mc, estimand="E2", method="delta")
+        naive = naive_event_rate(int(ct.sum()), int(mt.sum()), int(cc.sum()), int(mc.sum()))
+        ratios.append(delta.standard_error / naive.standard_error)
+    return {
+        "E2": float(c.sum() / m.sum()),
+        "E3": float(np.mean(c / m)),
+        "old_rate": float(counts.old_clicks.sum() / counts.old_inviews.sum()),
+        "se_ratio": float(np.median(ratios)),
+        "old_share": float(counts.old_inviews.sum() / m.sum()),
+    }
+
+
+def parametric_gate(values: Any, target: float, tolerance: float) -> dict[str, Any]:
+    """G12: uncertainty of a median across independent populations."""
+    values = np.asarray(values, dtype=float)
+    median = float(np.median(values))
+    se = float(np.std(values, ddof=1) / np.sqrt(len(values)) * 1.2533)
+    used = abs(median - target) + 1.96 * se
+    return {
+        "median": median,
+        "standard_error": se,
+        "used": used,
+        "target": target,
+        "tolerance": tolerance,
+        "pass": bool(used <= tolerance),
+    }
+
+
+def parametric_frames(counts: ParametricCounts, *, seed: int) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """G7's placeholder layout, preserving all count-level sufficient statistics."""
+    rng = np.random.default_rng(seed)
+    m, old, co, c = counts.inviews, counts.old_inviews, counts.old_clicks, counts.clicks
+    n = len(m)
+    offsets = np.r_[0, np.cumsum(m)]
+    user = np.repeat(np.arange(n), m)
+    position = np.arange(int(m.sum())) - offsets[user]
+    is_old = position < old[user]
+    click = np.where(is_old, position < co[user], position - old[user] < c[user] - co[user])
+    permutation = np.lexsort((rng.random(len(user)), user))
+    is_old, click = is_old[permutation], click[permutation]
+    cut = 9.2
+    age = np.where(is_old, cut + rng.exponential(8, len(user)), rng.uniform(0, cut, len(user)))
+    first = pd.Timestamp("2023-05-18").to_datetime64() + (
+        rng.uniform(0, 7 * 24 * 60 * 60, n) * 1e9
+    ).astype("timedelta64[ns]")
+    page = position // 7
+    impression_time = first[user] + (page * 30 * 60).astype("timedelta64[s]")
+    page_offsets = np.r_[0, np.cumsum((m + 6) // 7)]
+    iv = pd.DataFrame(
+        {
+            "user_id": user,
+            "impression_id": page_offsets[user] + page,
+            "impression_time": impression_time,
+            "position": position % 7,
+            "article_id": rng.integers(1, 5001, len(user)),
+            "age_hours": age,
+            "click": click,
+        }
+    )
+    users = pd.DataFrame(
+        {
+            "user_id": np.arange(n),
+            "device_type": rng.integers(1, 4, n),
+            "is_subscriber": rng.random(n) < 0.1,
+            "pre_period_clicks_21d": rng.poisson(20, n),
+        }
+    )
+    return iv, users
+
+
+@dataclass(frozen=True)
 class RankingBase:
     """The finite population: per-user sufficient statistics and the in-views behind them.
 
