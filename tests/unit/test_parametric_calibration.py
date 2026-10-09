@@ -78,3 +78,32 @@ def test_calibration_reuses_draws_and_preserves_stored_theta(settings, monkeypat
     target = np.array([settings["targets"][key] for key in pc.TARGETS])
     tolerance = np.array([settings["tolerances"][key] for key in pc.TARGETS])
     np.testing.assert_array_equal(residuals[0], (np.mean(expected, axis=0) - target) / tolerance)
+
+
+@pytest.mark.parametrize("success,shift", [(False, 0.0), (True, 0.02)])
+def test_calibration_rejects_failed_or_unidentified_fit(settings, monkeypatch, success, shift):
+    from abforensics.simulation import parametric_calibration as pc
+
+    original = dict(settings["theta"])
+    theta = np.array([original[key] for key in pc.PARAMETERS])
+    theta[0] += shift
+
+    def optimiser(*args, **kwargs):
+        return SimpleNamespace(x=theta, cost=0.0, success=success, message="fixture")
+
+    monkeypatch.setattr(pc, "least_squares", optimiser)
+    result = pc.calibrate_parametric(settings, populations=3, splits=40)
+    assert not result["pass"]
+    assert all(not fit["pass"] for fit in result["fits"])
+    assert settings["theta"] == original
+
+
+def test_miscalibrated_population_fails_ratio_gate(settings):
+    from abforensics.simulation import parametric_calibration as pc
+
+    settings["theta"]["sigma"] += 0.02
+    result = pc.validate_parametric(settings, populations=3, splits=40)
+    gate = result["summary"]["gates"]["se_ratio"]
+    assert gate["used"] > gate["tolerance"]
+    assert not gate["pass"]
+    assert not result["summary"]["pass"]

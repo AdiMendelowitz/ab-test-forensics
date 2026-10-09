@@ -68,3 +68,31 @@ def test_frame_builder_preserves_counts_and_last_inview():
     old_clicks = np.add.reduceat(base.iv_old & base.iv_click, base.offsets[:-1])
     np.testing.assert_array_equal(old_clicks, counts.old_clicks)
     assert not base.iv_candidate[base.offsets[1:] - 1].any()
+
+
+def test_parametric_base_preserves_counts_and_simulated_provenance():
+    settings = {**SETTINGS, "population_users": 100}
+    counts = ri.parametric_counts(settings)
+    base = ri.make_parametric_base(settings)
+    np.testing.assert_array_equal(base.inviews, counts.inviews)
+    np.testing.assert_array_equal(base.clicks, counts.clicks)
+    np.testing.assert_array_equal(base.old_inviews, counts.old_inviews)
+    assert base.summary["source"] == "simulated"
+    assert base.summary["population_seed"] == settings["population_seed"]
+    assert base.summary["layout"] == "placeholder"
+    with pytest.raises(ValueError, match="no leaked tier"):
+        base.with_tier("leaked")
+
+
+def test_parametric_base_truths_use_its_finite_population():
+    base = ri.make_parametric_base({**SETTINGS, "population_users": 100})
+    null = ri.scenario_truths(ri.potential_outcomes(base, ri.RankingParameters(0.0, 0.0)))
+    assert null["control_ctr"] == pytest.approx(base.clicks.sum() / base.inviews.sum())
+    assert null["control_user_rate"] == pytest.approx(np.mean(base.clicks / base.inviews))
+    assert all(abs(value) < 1e-12 for key, value in null.items() if "relative_lift" in key)
+    po = ri.potential_outcomes(base, ri.RankingParameters(0.15, 0.0))
+    removed = 0.15 * (base.old_candidates_clicked + base.old_candidates_unclicked)
+    np.testing.assert_allclose(po["expected_inviews_treatment"], base.inviews - removed)
+    np.testing.assert_allclose(
+        po["expected_clicks_treatment"], base.clicks - 0.15 * base.old_candidates_clicked
+    )

@@ -31,9 +31,12 @@ def load_config(root: Path, case: str) -> dict:
         return yaml.safe_load(fh)
 
 
-def cmd_simulate(root: Path, case: str, seed: int | None) -> int:
+def cmd_simulate(root: Path, case: str, seed: int | None, *, synthetic: bool = False) -> int:
+    if synthetic and case != "case02":
+        print("--synthetic is supported only by abf simulate case02", file=sys.stderr)
+        return 2
     if case == "case02":
-        return _cmd_simulate_case02(root, case, seed)
+        return _cmd_simulate_case02(root, case, seed, synthetic=synthetic)
     from abforensics.simulation.checkout_incident import (
         simulate_checkout_experiment,
         write_case_data,
@@ -394,21 +397,41 @@ def cmd_oc(
     return 0
 
 
-def _cmd_simulate_case02(root, case, seed):
+def _cmd_simulate_case02(root, case, seed, *, synthetic=False):
     from abforensics.simulation import ranking_incident as ri
 
     config = load_config(root, case)
     if seed is None and config.get("seed") is None:
         print("abf simulate case02: the case seed is not set yet; pass --seed", file=sys.stderr)
         return 2
-    base = ri.load_base(root / config["base"]["raw_dir"])
-    data = ri.simulate_ranking_experiment(config, seed=seed, base=base)
-    manifest = ri.write_case_data(
-        data, root / "data" / "generated" / case, root / "data" / "manifests" / f"{case}.json"
+    base = (
+        ri.make_parametric_base(config["parametric_generator"])
+        if synthetic
+        else ri.load_base(root / config["base"]["raw_dir"])
     )
+    data = ri.simulate_ranking_experiment(config, seed=seed, base=base)
+    generated = root / "data" / "generated" / ("case02_synthetic" if synthetic else case)
+    manifest_path = (
+        generated / "manifest.json" if synthetic else root / "data" / "manifests" / f"{case}.json"
+    )
+    label = "simulated " if synthetic else ""
+    if synthetic:
+        for frame in data.tables().values():
+            frame["source"] = "simulated"
+        data.manifest.update(
+            {
+                "source": "simulated",
+                "population_seed": int(config["parametric_generator"]["population_seed"]),
+                "skipped_scenarios": ["D_leaked_tier"],
+                "skipped_scenarios_reason": (
+                    "simulated population has no article totals for a leaked tier"
+                ),
+            }
+        )
+    manifest = ri.write_case_data(data, generated, manifest_path)
     counts = ", ".join(f"{k}={v:,}" for k, v in manifest["row_counts"].items())
-    print(f"{case}: seed={manifest['seed']} wrote data/generated/{case}/ ({counts})")
-    print(f"manifest: data/manifests/{case}.json")
+    print(f"{case}: {label}seed={manifest['seed']} wrote {generated.relative_to(root)}/ ({counts})")
+    print(f"{label}manifest: {manifest_path.relative_to(root)}")
     return 0
 
 
@@ -537,6 +560,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("command", choices=COMMANDS)
     parser.add_argument("case", choices=sorted(CASES))
     parser.add_argument(
+        "--synthetic",
+        action="store_true",
+        help="simulate case02: generate simulated data without the raw download",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=None,
@@ -563,9 +591,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.synthetic and (args.command != "simulate" or args.case != "case02"):
+        print("--synthetic is supported only by abf simulate case02", file=sys.stderr)
+        return 2
     root = repo_root()
     if args.command == "simulate":
-        return cmd_simulate(root, args.case, args.seed)
+        return cmd_simulate(root, args.case, args.seed, synthetic=args.synthetic)
     if args.command == "run":
         return cmd_run(root, args.case)
     if args.command == "oc":
