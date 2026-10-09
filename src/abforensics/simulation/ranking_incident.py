@@ -474,6 +474,40 @@ def build_base(
     )
 
 
+def make_parametric_base(
+    settings: Mapping[str, Any],
+    *,
+    r: float | None = None,
+    sigma: float | None = None,
+    depth_off: bool = False,
+) -> RankingBase:
+    """G7/G14: build the simulated population and verify its count-level round trip."""
+    seed = int(settings["population_seed"])
+    counts = parametric_counts(settings, r=r, sigma=sigma, depth_off=depth_off)
+    inviews, users = parametric_frames(counts, seed=seed)
+    base = build_base(
+        inviews,
+        users,
+        tier_cut_hours=9.2,
+        summary={"source": "simulated", "population_seed": seed, "layout": "placeholder"},
+    )
+    old_clicks = np.add.reduceat(base.iv_old & base.iv_click, base.offsets[:-1])
+    for actual, expected in (
+        (base.inviews, counts.inviews),
+        (base.clicks, counts.clicks),
+        (base.old_inviews, counts.old_inviews),
+        (old_clicks, counts.old_clicks),
+    ):
+        if not np.array_equal(actual, expected):
+            raise ValueError("G14: generated frame did not preserve population counts")
+    return dataclasses.replace(
+        base,
+        leaked_old_inviews=None,
+        leaked_candidates_clicked=None,
+        leaked_candidates_unclicked=None,
+    )
+
+
 def _md5(path: Path) -> str:
     h = hashlib.md5()
     with path.open("rb") as f:
