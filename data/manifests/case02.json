@@ -162,6 +162,57 @@
         "parametric_n_per_arm": 57600
       }
     },
+    "parametric_generator": {
+      "population_users": 15143,
+      "mean_inviews": 170.75526645975037,
+      "sd_inviews": 205.2198519271064,
+      "minimum_inviews": 5,
+      "old_shares": [
+        0.1672,
+        0.2182,
+        0.2472,
+        0.271,
+        0.272,
+        0.2868,
+        0.2946,
+        0.3066,
+        0.3312,
+        0.3851
+      ],
+      "old_share_concentration": 9,
+      "calibration_seed": 20261009,
+      "validation_seed": 20261010,
+      "validation_population_seed": 20262010,
+      "population_seed": 20263011,
+      "calibration_populations": 20,
+      "calibration_splits": 100,
+      "validation_populations": 20,
+      "validation_splits": 400,
+      "targets": {
+        "E2": 0.0904,
+        "E3": 0.101,
+        "old_rate": 0.0444,
+        "se_ratio": 1.48
+      },
+      "tolerances": {
+        "E2": 0.0005,
+        "E3": 0.0006,
+        "old_rate": 0.0007,
+        "se_ratio": 0.03
+      },
+      "theta": {
+        "a": -2.0905435503720984,
+        "b": 0.018942896873352072,
+        "sigma": 0.13719909454782553,
+        "gamma": -1.0183472412769359
+      },
+      "calibration_date": "2026-10-09",
+      "raw_md5": {
+        "behaviors": "5e6392d5c3d27994213fb834f8149528",
+        "history": "a8d50562d0f817178bf6ba308e87ad14",
+        "articles": "bb271df300a391040e9e59d2a224ec35"
+      }
+    },
     "deferred": {
       "large_variant_feasibility_check": "2026-10-31",
       "real_guardrail_signal": "open for Adi with the README (spec section 16, item 7; record section 10, 4 Oct 2026)"
