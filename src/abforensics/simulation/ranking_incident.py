@@ -104,7 +104,7 @@ def keyed_uniform(seed: int, key: Any, use: int, sub: Any | None = None) -> np.n
 
     ``key`` is the draw index (or the population index for population-level uses); ``sub`` is
     an optional second counter, the in-view position within a draw. Every argument is hashed
-    in its own SplitMix64 stage, so distinct tuples never alias by arithmetic packing.
+    in its own SplitMix64 stage, so distinct tuples do not alias by arithmetic packing.
     """
     s = _mix(np.asarray([int(seed) & _MASK], dtype=np.uint64))
     s = _mix(s ^ _U64(int(use) & _MASK))

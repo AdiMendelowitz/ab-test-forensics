@@ -73,7 +73,7 @@ operating_characteristics:
   joint_ship_rate_check: {scenario: C, target: 0.80, tolerance: 0.025}
   time_limit_minutes: 35              # `abf oc case02`; measured 22.4 min at 64,100 (2 Oct) and 24.8 min at 57,600 (4 Oct 2026) [D15]
   sweeps:                             # `abf oc case02 --sweeps`
-    time_limit_minutes: 70            # projected about 52 (eight sizes) from per-replicate timings of 1 Oct 2026; not yet run end to end [D15]
+    time_limit_minutes: 70            # projected about 52 (eight sizes) from per-replicate timings of 1 Oct 2026; measured 41.12 minutes end to end on 11 Oct 2026 (2 workers, B = 1,000) [D15]
     replicates: 1000
     bootstrap: {scenarios: [A], replicates_per_size: 200, resamples: 200, interval: normal}
     wallclock_percentile_bootstrap: {replicates_per_size: 3, resamples: 1000, interval: percentile}
