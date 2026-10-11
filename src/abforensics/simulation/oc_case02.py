@@ -96,7 +96,7 @@ def rule_row(e1_lo, e1_hi, guardrail, ship_margin) -> int:
     return 5
 
 
-def bootstrap_relative_lift(c_t, m_t, c_c, m_c, seed, resamples):
+def bootstrap_relative_lift(c_t, m_t, c_c, m_c, seed, resamples, *, interval="normal"):
     cols = {"num_t": "c_t", "den_t": "m_t", "num_c": "c_c", "den_c": "m_c"}
     n_t, n_c = len(c_t), len(c_c)
     wide = pd.DataFrame(
@@ -116,7 +116,7 @@ def bootstrap_relative_lift(c_t, m_t, c_c, m_c, seed, resamples):
         resamples,
         seed,
         estimand="E2",
-        interval="normal",
+        interval=interval,
         strata_col="__arm",
     )
 
@@ -242,7 +242,9 @@ def _run_chunk(args):
     return rows
 
 
-def summarise(rows: pd.DataFrame, truths: dict[str, dict]) -> tuple[pd.DataFrame, pd.DataFrame]:
+def summarise(
+    rows: pd.DataFrame, truths: dict[str, dict], scenario_names=SCENARIOS
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     rows = rows.copy()
     rows["true_effect"] = [
         truths[s][TRUTH_KEY[e]] for s, e in zip(rows.scenario, rows.estimand, strict=True)
@@ -260,7 +262,7 @@ def summarise(rows: pd.DataFrame, truths: dict[str, dict]) -> tuple[pd.DataFrame
             d[name + suffix] = value
 
     scenarios, rules = [], []
-    for scenario in SCENARIOS:
+    for scenario in scenario_names:
         for estimator in ESTIMATORS:
             group = rows[(rows.scenario == scenario) & (rows.estimator == estimator)]
             if group.empty:

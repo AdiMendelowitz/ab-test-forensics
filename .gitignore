@@ -10,6 +10,7 @@ results/**
 !results/*/
 !results/*/oc_*.csv
 !results/*/oc_meta.json
+!results/*/oc_sweep_meta.json
 
 # Python
 .venv/

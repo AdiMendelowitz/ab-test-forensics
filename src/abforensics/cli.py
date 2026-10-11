@@ -191,6 +191,7 @@ def cmd_oc(
     seed: int | None = None,
     jobs: int | None = None,
     max_seconds: float | None = None,
+    sweeps: bool = False,
 ) -> int:
     """Operating characteristics: scenarios A to D and F, loss sweep, conversion-deficit sweep.
 
@@ -216,6 +217,7 @@ def cmd_oc(
             seed=seed,
             jobs=jobs,
             max_seconds=max_seconds,
+            sweeps=sweeps,
         )
     import hashlib
     import json
@@ -435,7 +437,9 @@ def _cmd_simulate_case02(root, case, seed, *, synthetic=False):
     return 0
 
 
-def _cmd_oc_case02(root, case, *, replicates, sweep_replicates, seed, jobs, max_seconds):
+def _cmd_oc_case02(
+    root, case, *, replicates, sweep_replicates, seed, jobs, max_seconds, sweeps=False
+):
     t0 = time.perf_counter()
     from abforensics.simulation import ranking_incident as ri
     from abforensics.simulation.oc_case02 import run_oc_case02
@@ -446,6 +450,8 @@ def _cmd_oc_case02(root, case, *, replicates, sweep_replicates, seed, jobs, max_
             file=sys.stderr,
         )
         return 2
+    if sweeps:
+        return _cmd_oc_case02_sweeps(root, case, seed=seed, jobs=jobs)
     config = load_config(root, case)
     oc = config["operating_characteristics"]
     raw_dir = root / config["base"]["raw_dir"]
@@ -470,6 +476,48 @@ def _cmd_oc_case02(root, case, *, replicates, sweep_replicates, seed, jobs, max_
     )
     for name in ("oc_truths.csv", "oc_scenarios.csv", "oc_rule.csv", "oc_meta.json"):
         print(out_dir / name)
+    return 0
+
+
+def _cmd_oc_case02_sweeps(root, case, *, seed, jobs):
+    t0 = time.perf_counter()
+    from abforensics.simulation import ranking_incident as ri
+    from abforensics.simulation.oc_case02_sweeps import run_sweeps_case02
+
+    config = load_config(root, case)
+    oc = config["operating_characteristics"]
+    raw_dir = root / config["base"]["raw_dir"]
+    out_dir = root / "results" / "case02"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    fig_path = (
+        root / "case_studies" / CASES[case] / "figures" / "fig4_operating_characteristics.png"
+    )
+    meta = run_sweeps_case02(
+        config,
+        ri.load_base(raw_dir),
+        oc_seed=int(seed if seed is not None else oc["seed"]),
+        workers=int(jobs or oc["workers"]),
+        out_dir=out_dir,
+        raw_dir=raw_dir,
+        fig_path=fig_path,
+    )
+    total = time.perf_counter() - t0
+    limit = oc["sweeps"]["time_limit_minutes"]
+    verdict = "PASS" if total <= 60 * limit else "FAIL"
+    print(
+        f"abf oc case02 --sweeps: B={meta['replicates']}, workers={meta['workers']}, "
+        f"command wall-clock {total} s ({total / 60} min), "
+        f"harness {meta['wall_clock_seconds']} s, against {limit} min: {verdict}"
+    )
+    for name in (
+        "oc_sweep_heterogeneity.csv",
+        "oc_sweep_tail.csv",
+        "oc_sweep_size.csv",
+        "oc_sweep_runtime.csv",
+        "oc_sweep_meta.json",
+    ):
+        print(out_dir / name)
+    print(fig_path)
     return 0
 
 
@@ -586,6 +634,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="oc: stop starting new units after this many seconds; a rerun resumes",
     )
+    parser.add_argument(
+        "--sweeps",
+        action="store_true",
+        help="oc case02: run the sweeps of spec section 10 (fixed B; rejects --replicates, "
+        "--sweep-replicates and --max-seconds)",
+    )
     return parser
 
 
@@ -594,6 +648,26 @@ def main(argv: list[str] | None = None) -> int:
     if args.synthetic and (args.command != "simulate" or args.case != "case02"):
         print("--synthetic is supported only by abf simulate case02", file=sys.stderr)
         return 2
+    if args.sweeps:
+        if args.command != "oc" or args.case != "case02":
+            print("--sweeps is supported only by abf oc case02", file=sys.stderr)
+            return 2
+        rejected = [
+            flag
+            for flag, value in (
+                ("--replicates", args.replicates),
+                ("--sweep-replicates", args.sweep_replicates),
+                ("--max-seconds", args.max_seconds),
+            )
+            if value is not None
+        ]
+        if rejected:
+            print(
+                f"abf oc case02 --sweeps: {', '.join(rejected)} not allowed; "
+                "B per sweep point is fixed by the spec (section 10)",
+                file=sys.stderr,
+            )
+            return 2
     root = repo_root()
     if args.command == "simulate":
         return cmd_simulate(root, args.case, args.seed, synthetic=args.synthetic)
@@ -608,6 +682,7 @@ def main(argv: list[str] | None = None) -> int:
             seed=args.seed,
             jobs=args.jobs,
             max_seconds=args.max_seconds,
+            sweeps=args.sweeps,
         )
     print(f"abf {args.command} {args.case}: unknown command", file=sys.stderr)
     return 2
