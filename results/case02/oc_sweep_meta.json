@@ -1,0 +1,97 @@
+{
+  "case": "case02",
+  "command": "abf oc case02 --sweeps",
+  "oc_seed": 20261003,
+  "replicates": 1000,
+  "workers": 2,
+  "tasks": 76,
+  "size_chunks": 4,
+  "sweeps_config": {
+    "time_limit_minutes": 70,
+    "replicates": 1000,
+    "bootstrap": {
+      "scenarios": [
+        "A"
+      ],
+      "replicates_per_size": 200,
+      "resamples": 200,
+      "interval": "normal"
+    },
+    "wallclock_percentile_bootstrap": {
+      "replicates_per_size": 3,
+      "resamples": 1000,
+      "interval": "percentile"
+    },
+    "sample_size_per_arm": [
+      10000,
+      15143,
+      25000,
+      52500,
+      57600,
+      64100,
+      100000,
+      200000
+    ],
+    "heterogeneity_sigma": [
+      0.0,
+      0.2,
+      0.4,
+      0.6,
+      0.8,
+      1.0
+    ],
+    "tail_dispersion_r": [
+      0.25,
+      0.5,
+      1.0,
+      2.0,
+      4.0
+    ],
+    "heterogeneity_depth_off_point": {
+      "sigma": 0.0,
+      "depth_term": false
+    },
+    "tail_bootstrap": {
+      "r": [
+        0.25,
+        0.5
+      ],
+      "replicates": 200,
+      "resamples": 200,
+      "interval": "normal"
+    },
+    "parametric_n_per_arm": 57600
+  },
+  "theta": {
+    "a": -2.0905435503720984,
+    "b": 0.018942896873352072,
+    "sigma": 0.13719909454782553,
+    "gamma": -1.0183472412769359
+  },
+  "marked_sizes": [
+    15143,
+    52500,
+    57600,
+    64100
+  ],
+  "row_counts": {
+    "oc_sweep_heterogeneity.csv": 42,
+    "oc_sweep_tail.csv": 32,
+    "oc_sweep_size.csv": 104,
+    "oc_sweep_runtime.csv": 32
+  },
+  "parallel_seconds": 2376.5417973999865,
+  "runtime_seconds": 83.49067400000058,
+  "wall_clock_seconds": 2464.107544299972,
+  "time_limit_minutes": 70,
+  "within_time_limit": true,
+  "python": "3.14.0",
+  "numpy": "2.5.3",
+  "pandas": "3.0.6",
+  "scipy": "1.18.1",
+  "raw_md5": {
+    "behaviors": "5e6392d5c3d27994213fb834f8149528",
+    "history": "a8d50562d0f817178bf6ba308e87ad14",
+    "articles": "bb271df300a391040e9e59d2a224ec35"
+  }
+}
