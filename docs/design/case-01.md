@@ -14,7 +14,7 @@ The case teaches one thing: a significant result is uninterpretable until the po
 Decision owner: checkout product lead.
 Action space: ship to 100%, continue to the final look, stop, or take no decision and investigate.
 Timeline: enrolment runs for 21 days. The interim look reads the users enrolled on days 1 to 14 once their outcomes are complete (day 22.5, 24 March 12:00); the final look reads all 21 days of users once theirs are (day 29.5, 31 March 12:00). The final-look decision waits for the refund guardrail, whose last cohort matures on 13 April 12:00: the primary metric is read on 31 March and the decision is taken on 13 April. The boundary calculation is unchanged, because the primary metric is not reread.
-Decision rule. The case treats it as pre-declared; in the build, its ordering, the guardrail verdict rule, the final-look boundary and the refund guardrail's form were added or revised on 29 September, after the committed run had been inspected (section 16). None of these revisions changes this run's outcome.
+Decision rule. Within the fictional experiment the rule is pre-declared. In the build, its ordering, the guardrail verdict rule, the final-look boundary and the refund guardrail's form were finalised on 29 September, after the committed run had been inspected (section 16); the operating characteristics of section 10 evaluate the final rule, and no verdict for the committed run changes under any version.
 
 Rows are checked in order at each look, so every outcome maps to exactly one action:
 
@@ -186,7 +186,7 @@ Stated in the README: one device per user; no interference between users; server
 - Kohavi, Tang, Xu. Trustworthy Online Controlled Experiments. Cambridge University Press, 2020. Chapter 20 (triggering) and chapter 21 (sample ratio mismatch and other trust-related guardrail metrics).
 - Deng, Lu, Litz. Trustworthy Analysis of Online A/B Tests: Pitfalls, Challenges and Solutions. WSDM 2017.
 - Kohavi, Longbotham. Unexpected Results in Online Controlled Experiments. SIGKDD Explorations, 2010.
-- Chen, Liu, Xu. Automatic Detection and Diagnosis of Biased Online Experiments. arXiv:1808.05513, 2018 (LinkedIn's SRM diagnosis workflow).
+- Chen, Liu, Xu. Automatic Detection and Diagnosis of Biased Online Experiments. arXiv:1808.00114, 2018 (LinkedIn's SRM diagnosis workflow).
 
 ## 16. Changes after the build (29 September 2026)
 
