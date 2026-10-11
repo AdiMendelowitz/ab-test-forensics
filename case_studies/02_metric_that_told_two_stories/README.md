@@ -194,7 +194,7 @@ uv run abf oc case02
 uv run abf oc case02 --sweeps
 ```
 
-`abf simulate case02` needs the EB-NeRD small download under `data/raw/ebnerd_small`; `abf simulate case02 --synthetic` runs without it. Run time of `abf simulate case02` at 115,200 draws: [NEEDS FIGURE: abf simulate case02 wall-clock at 115,200 draws]. `abf oc` caches each unit of work under `results/case02/` and resumes if interrupted.
+`abf simulate case02` needs the EB-NeRD small download under `data/raw/ebnerd_small`; `abf simulate case02 --synthetic` runs without it. Run time of `abf simulate case02` at 115,200 draws: median 33.5 s (range 32.2 to 34.6 s) over three runs after one warm-up, measured on 11 October 2026 on the author's i7-1165G7 laptop under Windows 11 on mains power. <!-- Measure-Command x4 on 2026-10-11: 40.8 s warm-up, then 33.5, 32.2, 34.6 s; spec section 14 --> `abf oc` caches each unit of work under `results/case02/` and resumes if interrupted.
 
 ## Sources
 
