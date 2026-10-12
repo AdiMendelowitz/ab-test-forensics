@@ -6,8 +6,6 @@ All but the last test run on a small synthetic base, so they need no EB-NeRD dow
 from __future__ import annotations
 
 import copy
-import json
-import os
 from pathlib import Path
 
 import numpy as np
@@ -267,79 +265,6 @@ def test_null_seed_is_rejected(base: ri.RankingBase) -> None:
 
 
 # --- licence: no per-user data in tracked files (spec section 6) ----------------------------------
-
-_SKIP_DIRS = {
-    ".git",
-    ".venv",
-    "venv",
-    "data",
-    "notes",
-    "__pycache__",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".idea",
-    ".vscode",
-    "build",
-    "dist",
-    ".ipynb_checkpoints",
-    "parts",
-    "__MACOSX",
-}
-_ID_COLUMNS = {"user_id", "article_id", "draw_id"}
-
-
-def _tabular_files(root: Path):
-    for here, dirs, files in os.walk(root):
-        dirs[:] = [d for d in dirs if d not in _SKIP_DIRS and not d.endswith(".egg-info")]
-        for name in files:
-            path = Path(here) / name
-            if path.suffix in {".csv", ".parquet", ".json", ".ipynb"}:
-                yield path.relative_to(root), path
-
-
-def _columns_and_rows(path: Path) -> tuple[set[str], int]:
-    if path.suffix == ".csv":
-        frame = pd.read_csv(path)
-        return set(frame.columns), len(frame)
-    if path.suffix == ".parquet":
-        frame = pd.read_parquet(path)
-        return set(frame.columns), len(frame)
-    doc = json.loads(path.read_text(encoding="utf-8"))
-    if path.suffix == ".ipynb":
-        text = json.dumps([c.get("outputs", []) for c in doc.get("cells", [])])
-        return {c for c in _ID_COLUMNS if c in text}, 0
-    keys: set[str] = set()
-
-    def walk(o):
-        if isinstance(o, dict):
-            keys.update(map(str, o))
-            for v in o.values():
-                walk(v)
-        elif isinstance(o, list):
-            for v in o:
-                walk(v)
-
-    walk(doc)
-    return keys, 0
-
-
-def test_no_tracked_file_carries_per_user_data() -> None:
-    """Walks every file outside untracked directories (a superset of the tracked set; git is not
-    called, so the test runs identically on the VM and on Windows)."""
-    offenders = []
-    for rel, path in _tabular_files(REPO):
-        cols, rows = _columns_and_rows(path)
-        if cols & _ID_COLUMNS:
-            offenders.append(f"{rel}: {sorted(cols & _ID_COLUMNS)}")
-        allowed = (
-            (rel.parts[0] == "results" and rel.name.startswith("oc_"))
-            or "figures" in rel.parts
-            or "manifest" in rel.name
-        )
-        if rows > 1000 and not allowed:
-            offenders.append(f"{rel}: {rows} rows")
-    assert not offenders, offenders
-
 
 # --- the real base (skipped without the download) -------------------------------------------------
 

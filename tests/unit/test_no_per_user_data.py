@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import os
 import re
 import subprocess
 from html.parser import HTMLParser
@@ -161,11 +162,61 @@ def check_tracked_files(root, tracked):
     return sorted(set(hits), key=lambda hit: (hit[0], str(hit[1])))
 
 
+_SKIP_DIR_NAMES = {
+    ".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache", ".idea", ".vscode",
+    "build", "dist", ".ipynb_checkpoints", "parts", "__MACOSX",
+}
+_SKIP_RELATIVE = {"notes", "data/generated", "data/raw"}
+
+
+def _walk(root):
+    """Every file under root except the untracked roots of .gitignore: a superset of
+    git ls-files."""
+    found = []
+    for here, dirs, files in os.walk(root):
+        rel_here = Path(here).relative_to(root).as_posix()
+        dirs[:] = sorted(
+            d for d in dirs
+            if d not in _SKIP_DIR_NAMES
+            and not d.endswith(".egg-info")
+            and (d if rel_here == "." else f"{rel_here}/{d}") not in _SKIP_RELATIVE
+        )
+        for name in files:
+            found.append((Path(here) / name).relative_to(root).as_posix())
+    return found
+
+
+def tracked_files(root):
+    """git ls-files when a repository is present; otherwise the walk, so a clean clone without
+    .git runs the same guard."""
+    if (root / ".git").exists():
+        return subprocess.run(
+            ["git", "ls-files"], cwd=root, check=True, capture_output=True, text=True
+        ).stdout.splitlines()
+    return _walk(root)
+
+
 def test_tracked_files_contain_no_per_user_data():
-    tracked = subprocess.run(
+    assert not (hits := check_tracked_files(REPO, tracked_files(REPO))), hits
+
+
+def test_fallback_walk_lists_files_without_git(tmp_path):
+    (tmp_path / "keep.csv").write_text("count\n1\n", encoding="utf-8", newline="\n")
+    (tmp_path / ".venv").mkdir()
+    (tmp_path / ".venv" / "skip.csv").write_text("user_id\n1\n", encoding="utf-8", newline="\n")
+    (tmp_path / "data" / "raw").mkdir(parents=True)
+    (tmp_path / "data" / "raw" / "skip2.csv").write_text(
+        "user_id\n1\n", encoding="utf-8", newline="\n"
+    )
+    assert tracked_files(tmp_path) == ["keep.csv"]
+
+
+def test_walk_is_a_superset_of_git_ls_files():
+    tracked = set(subprocess.run(
         ["git", "ls-files"], cwd=REPO, check=True, capture_output=True, text=True
-    ).stdout.splitlines()
-    assert not (hits := check_tracked_files(REPO, tracked)), hits
+    ).stdout.splitlines())
+    missing = sorted(tracked - set(_walk(REPO)))
+    assert not missing, missing
 
 
 @pytest.mark.parametrize("identifier", sorted(IDENTIFIERS))
