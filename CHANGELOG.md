@@ -20,3 +20,58 @@
 - `oc_meta.json` records the Python version and machine for each unit and, separately, for the run that assembled the tables (a cache-only rerun on another machine previously overwrote the single `python` field); keys are sorted and the OC CSVs and meta are written with LF line endings on every platform.
 - Case 02 design specification (`docs/design/case-02.md`, v1.0) written and reviewed before any Case 02 code: three estimands, a delete-one-user jackknife shared with later cases, sample size set against the decision margin; root README roadmap updated.
 - `requires-python` raised to 3.12 to match the documented support; root README CI versions corrected.
+
+## 30 September 2026 (unreleased)
+
+- Case 02 spec v1.1: EB-NeRD data decision, sample size at the measured CV (a9c98dc)
+- Case 02 spec v1.1: section 5 draws per arm (5425400)
+- Case 02 spec v1.2 (inputs settled, derived-figures table); config.yaml; jackknife_variance and cluster_bootstrap with tests (73fb241)
+
+## 1 October 2026 (unreleased)
+
+- Case 02 spec v1.4; ratio_of_sums array kernel; Case 02 generator with tests (5459b28)
+
+## 4 October 2026 (unreleased)
+
+- Case 02 harness: leaked tier, oc_case02, abf oc and simulate case02, tests (c679227)
+- Case 02 spec v1.5: re-sized to 57,600 per arm from the measured scenario-C check; abf oc case02 results at 115,200 draws (194ddcb)
+
+## 5 October 2026 (unreleased)
+
+- Case 02: LF pins in the manifest and OC writers (A11), case seed 20261002, committed run at 115,200 draws, manifest test over both cases (90a3c2c)
+- Case 02 notebook (A32): builder under notes/tools, abf run case02 through cmd_run, three tests, executed outputs and figures (191fa9e)
+
+## 6 October 2026 (unreleased)
+
+- README: Case 02 status after the notebook; ignore CLAUDE.md (session destination table) (2f131bf)
+- Case 02 spec v1.6: section 14 ratio disclosure; section 16 item 7 closed, guardrail kept simulated and disclosed (8b99cd5)
+
+## 7 October 2026 (unreleased)
+
+- Case 01 README: provenance from fresh-clone runs on Windows 11 and Linux (WSL2) at 8b99cd5; oc_meta from the Linux run (c55a69d)
+- LF line endings for the Case 01 manifest and executed notebooks, with tests; ruff format (30be84f)
+- Lint: wrap long lines, zip strict=True, imports at top, lowercase test name (f122143)
+- Case 02 notebook from the cold-cache run of 7 October (M1): 20.8 s wall-clock, 5.6 s in-notebook (b126047)
+- README: hero figure, Case 01 headline numbers, case cards, mechanism diagram, collapsible reference sections (55f70f6)
+
+## 8 October 2026 (unreleased)
+
+- Export Case 02 functions and result classes and add denominator blockers (ccd1d5c)
+- Spec section 11: cluster_bootstrap covers statistics of totals; the Case 01 p95 bootstrap stays in the notebook (144321e)
+- Add tracked-data licence guard for Case 02 (e002486)
+
+## 9 October 2026 (unreleased)
+
+- Add Case 02 parametric generator, calibration and validation (partial) (68b7d2b)
+- Package Case 02 calibration and fresh validation (d8ba714)
+- Add isolated Case 02 synthetic simulation (ef94020)
+
+## 11 October 2026 (unreleased)
+
+- T5b2: abf oc case02 --sweeps, sweep tables, fig4, measured 41.12 min (35bc8ff)
+- C1: public-text corrections to Case 01 and Case 02 specs (arXiv id, arm sizes, active-user selection, tier wording) (346834c)
+- C2: unit aggregation raises on non-finite values instead of silently totalling them as zero (6b359ba)
+- C3: independent-seed sizing confirmation (0.8215 at oc seed 20261011) recorded in spec section 5 (da73037)
+- Case 02 README and decision memo (40d23c0)
+- Record measured sweeps and simulate timings; soften an aliasing claim (f08006d)
+- Case 02 manifest: add parametric generator provenance block (0ab2dc8)
