@@ -262,6 +262,8 @@ def parametric_counts(
 
 def parametric_statistics(counts: ParametricCounts, *, splits: int, seed: int) -> dict[str, float]:
     """G11/G12 targets, using package delta and naive standard errors."""
+    if splits < 1:
+        raise ValueError(f"splits must be at least 1, got {splits}")
     from abforensics.metrics.ratio import naive_event_rate, ratio_of_sums_arrays
 
     c, m = counts.clicks, counts.inviews

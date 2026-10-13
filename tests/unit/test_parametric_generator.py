@@ -56,6 +56,14 @@ def test_count_statistics_use_package_errors():
     assert result["se_ratio"] > 1
 
 
+def test_statistics_reject_nonpositive_split_count():
+    counts = ri.parametric_counts(SETTINGS)
+    with pytest.raises(ValueError, match="got 0"):
+        ri.parametric_statistics(counts, splits=0, seed=20261009)
+    with pytest.raises(ValueError, match="got -3"):
+        ri.parametric_statistics(counts, splits=-3, seed=20261009)
+
+
 def test_frame_builder_preserves_counts_and_last_inview():
     settings = {**SETTINGS, "population_users": 100}
     counts = ri.parametric_counts(settings)
