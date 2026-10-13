@@ -217,6 +217,26 @@ def test_core_defaults_and_scenario_subset(small_config, base):
         )
 
 
+def test_above_population_follows_configured_population(small_config):
+    small_config["base"]["population_users"] = 500
+    flags = {
+        task["size_per_arm"]: task["above_population"]
+        for task in sw.sweep_tasks(small_config)
+        if task["kind"] == "size"
+    }
+    assert flags == {400: "no", 600: "yes"}
+
+
+def test_failed_row_count_check_writes_no_csv(small_config, base, tmp_path, monkeypatch):
+    expected = sw.expected_row_counts(small_config)
+    expected["oc_sweep_tail.csv"] += 1
+    monkeypatch.setattr(sw, "expected_row_counts", lambda config: expected)
+    out_dir = tmp_path / "sweeps"
+    with pytest.raises(ValueError, match="oc_sweep_tail.csv: expected"):
+        sw.run_sweeps_case02(small_config, base, oc_seed=7, workers=1, out_dir=out_dir)
+    assert list(tmp_path.rglob("*.csv")) == []
+
+
 def test_missing_replicates_names_key(small_config, base, tmp_path):
     del small_config["operating_characteristics"]["sweeps"]["replicates"]
     with pytest.raises(ValueError, match="replicates"):

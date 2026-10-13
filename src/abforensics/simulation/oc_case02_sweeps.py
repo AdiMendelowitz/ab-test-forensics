@@ -107,7 +107,9 @@ def _tasks(config, size_chunks):
                         size_per_arm=int(size),
                         total_draws=2 * int(size),
                         marked="yes" if size in MARKED_SIZES else "no",
-                        above_population="yes" if size > 15143 else "no",
+                        above_population=(
+                            "yes" if size > int(config["base"]["population_users"]) else "no"
+                        ),
                         replicates=indices[chunk::size_chunks],
                     )
                 )
@@ -334,16 +336,15 @@ def run_sweeps_case02(
     )
     runtime_seconds = time.perf_counter() - runtime_start
     out_dir = Path(out_dir)
+    named = {f"oc_sweep_{kind}.csv": table for kind, table in tables.items()}
+    for name, count in expected_row_counts(config).items():
+        if len(named[name]) != count:
+            raise ValueError(f"{name}: expected {count} rows, built {len(named[name])}")
     out_dir.mkdir(parents=True, exist_ok=True)
     row_counts = {}
-    for kind, table in tables.items():
-        name = f"oc_sweep_{kind}.csv"
+    for name, table in named.items():
         table.to_csv(out_dir / name, index=False, lineterminator="\n")
         row_counts[name] = len(pd.read_csv(out_dir / name))
-    expected = expected_row_counts(config)
-    for name, count in expected.items():
-        if row_counts[name] != count:
-            raise ValueError(f"{name}: expected {count} rows, wrote {row_counts[name]}")
     if fig_path is not None:
         plot_case02_sweeps(
             tables["heterogeneity"],
