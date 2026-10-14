@@ -14,8 +14,8 @@ NB = REPO / "case_studies" / "02_metric_that_told_two_stories" / "analysis.ipynb
 BANNED = re.compile(r"\b(correct|incorrect|right|wrong)\b", re.IGNORECASE)
 TWO_MINUTE = (
     "Users were randomised and impressions were counted. The interval was 1.5 times too narrow, "
-    "and fixing it did not change the decision, because the rate rose by removing impressions, "
-    "not by adding clicks."
+    "and fixing it did not change the decision, because clicks per user did not rise and the "
+    "rate rose as impressions per user fell."
 )
 
 
