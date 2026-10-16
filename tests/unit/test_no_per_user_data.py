@@ -163,8 +163,19 @@ def check_tracked_files(root, tracked):
 
 
 _SKIP_DIR_NAMES = {
-    ".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache", ".idea", ".vscode",
-    "build", "dist", ".ipynb_checkpoints", "parts", "__MACOSX",
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".idea",
+    ".vscode",
+    "build",
+    "dist",
+    ".ipynb_checkpoints",
+    "parts",
+    "__MACOSX",
 }
 _SKIP_RELATIVE = {"notes", "data/generated", "data/raw"}
 
@@ -176,7 +187,8 @@ def _walk(root):
     for here, dirs, files in os.walk(root):
         rel_here = Path(here).relative_to(root).as_posix()
         dirs[:] = sorted(
-            d for d in dirs
+            d
+            for d in dirs
             if d not in _SKIP_DIR_NAMES
             and not d.endswith(".egg-info")
             and (d if rel_here == "." else f"{rel_here}/{d}") not in _SKIP_RELATIVE
@@ -212,9 +224,11 @@ def test_fallback_walk_lists_files_without_git(tmp_path):
 
 
 def test_walk_is_a_superset_of_git_ls_files():
-    tracked = set(subprocess.run(
-        ["git", "ls-files"], cwd=REPO, check=True, capture_output=True, text=True
-    ).stdout.splitlines())
+    tracked = set(
+        subprocess.run(
+            ["git", "ls-files"], cwd=REPO, check=True, capture_output=True, text=True
+        ).stdout.splitlines()
+    )
     missing = sorted(tracked - set(_walk(REPO)))
     assert not missing, missing
 
