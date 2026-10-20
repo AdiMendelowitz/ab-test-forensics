@@ -1,7 +1,7 @@
 {
   "abforensics_version": "0.1.0",
   "case": "case01",
-  "code_sha256": "c7576c389d1e0047d4ed19dbb2f2cf6eb6feb7877d7ce89871a216747764f8e8",
+  "code_sha256": "03799e21cff29dba8a867bdff0df53d35b10dec44ef440943baed941d32e9d0e",
   "library_versions": {
     "numpy": "2.5.3",
     "pandas": "3.0.6",
@@ -13,79 +13,79 @@
   "seed": 20261001,
   "summary_machine": "Windows-11-10.0.26300-SP0",
   "summary_python": "3.14.0",
-  "total_unit_seconds": 872.8,
+  "total_unit_seconds": 832.1,
   "units": {
     "offset_-0.1": {
-      "file": "offset_-0.1_6555faa9d852c714.parquet",
+      "file": "offset_-0.1_a9a3552fba8eedee.parquet",
       "jobs": 8,
-      "key": "6555faa9d852c7144b314aac3d17c325bd4fc4c496b65965fcacd5d923eff0b0",
+      "key": "a9a3552fba8eedee4e166183b67c68b952b7baa30302539ece61b9c72f6a9115",
       "machine": "Windows-11-10.0.26300-SP0",
       "python": "3.14.0",
       "replicates": 1000,
-      "seconds": 49.6
+      "seconds": 46.7
     },
     "offset_-0.2": {
-      "file": "offset_-0.2_f87de956d32a3c25.parquet",
+      "file": "offset_-0.2_b022e5003c26ad54.parquet",
       "jobs": 8,
-      "key": "f87de956d32a3c25d6bf5288f6faa882d3b20c547755b5a7dba586f83917d33e",
+      "key": "b022e5003c26ad54a0ae872a02808efc8c1e34a2ff3adde3dad2481347bccd58",
       "machine": "Windows-11-10.0.26300-SP0",
       "python": "3.14.0",
       "replicates": 1000,
-      "seconds": 49.5
+      "seconds": 48.0
     },
     "offset_-0.4": {
-      "file": "offset_-0.4_5dd4477b8ef41776.parquet",
+      "file": "offset_-0.4_f7f6bb6b50873f03.parquet",
       "jobs": 8,
-      "key": "5dd4477b8ef41776cd4dcc1aa57214947f07854fd02bef1dc491960257106335",
+      "key": "f7f6bb6b50873f03d5b922f2605dd5bb17694038dd34b15932e257ed2c3bd2d7",
       "machine": "Windows-11-10.0.26300-SP0",
       "python": "3.14.0",
       "replicates": 1000,
-      "seconds": 47.0
+      "seconds": 54.0
     },
     "offset_-0.5": {
-      "file": "offset_-0.5_1afc334486c7bea4.parquet",
+      "file": "offset_-0.5_1083b99501b193a6.parquet",
       "jobs": 8,
-      "key": "1afc334486c7bea46bef43b715de6a72096d85a2334066940344876a0a005d49",
+      "key": "1083b99501b193a601547014650573a2df5ef9075885b57aa0dea1ec630dd9de",
       "machine": "Windows-11-10.0.26300-SP0",
       "python": "3.14.0",
       "replicates": 1000,
-      "seconds": 48.8
+      "seconds": 51.0
     },
     "offset_-0.6": {
-      "file": "offset_-0.6_c97a18581e0654ba.parquet",
+      "file": "offset_-0.6_1fec6184a6e589ad.parquet",
       "jobs": 8,
-      "key": "c97a18581e0654ba1389ebc8cccb1020f17cb64da1f9f673de879cf657d74a42",
+      "key": "1fec6184a6e589ad12e71c2ae410cea7e21658421b78820a9296aeabea4b9614",
       "machine": "Windows-11-10.0.26300-SP0",
       "python": "3.14.0",
       "replicates": 1000,
-      "seconds": 49.9
+      "seconds": 50.3
     },
     "offset_0.0": {
-      "file": "offset_0.0_84042f4bec82cd89.parquet",
+      "file": "offset_0.0_56c20f22725e9d47.parquet",
       "jobs": 8,
-      "key": "84042f4bec82cd8983ba71de1488fd665aa41fe303f4911eb245f864ebf47cd1",
+      "key": "56c20f22725e9d4701c39fe8d6db1a51252766c5059c27b71fa5f2f29fcbc4c5",
       "machine": "Windows-11-10.0.26300-SP0",
       "python": "3.14.0",
       "replicates": 1000,
-      "seconds": 48.7
+      "seconds": 51.7
     },
     "scenarios_effect": {
-      "file": "scenarios_effect_e72bcd2c28e4b0a6.parquet",
+      "file": "scenarios_effect_5b073e9243fbfb6a.parquet",
       "jobs": 8,
-      "key": "e72bcd2c28e4b0a64413aa82cea92698d79dcb917063ee2c2e0850820b02d8cc",
+      "key": "5b073e9243fbfb6a1b20ba757f1812f87981961e96bdea3061a8e164c34ea42a",
       "machine": "Windows-11-10.0.26300-SP0",
       "python": "3.14.0",
       "replicates": 5000,
-      "seconds": 280.7
+      "seconds": 274.4
     },
     "scenarios_null": {
-      "file": "scenarios_null_4d134a1314e9b129.parquet",
+      "file": "scenarios_null_71f24315bfa1361f.parquet",
       "jobs": 8,
-      "key": "4d134a1314e9b129197e634e78f1740d725b738fffb1b0dd199c3658fb60533a",
+      "key": "71f24315bfa1361f2ff3076811876310b05b15f73b3b74efbd9d56c5e1358187",
       "machine": "Windows-11-10.0.26300-SP0",
       "python": "3.14.0",
       "replicates": 5000,
-      "seconds": 298.6
+      "seconds": 256.0
     }
   }
 }

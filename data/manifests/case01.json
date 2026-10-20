@@ -24,8 +24,8 @@
       }
     },
     "incident": {
-      "supply_line": "android",
-      "batch_below": "8.4",
+      "supply_line": "A",
+      "batch_below": "4",
       "scan_loss_probability": 0.35,
       "affects_arm": "treatment"
     },
@@ -64,7 +64,7 @@
     }
   },
   "true_relative_lift": 0.03,
-  "true_relative_lift_applies_to": "users whose widget renders",
+  "true_relative_lift_applies_to": "products that reach the scanner",
   "expected_ate_absolute": 0.0008163990795205046,
   "expected_ate_absolute_reached_scanner": 0.0009600096687542157,
   "expected_relative_lift_itt": 0.025512471235015655,
@@ -99,12 +99,12 @@
     "truth": "truth.parquet"
   },
   "content_sha256": {
-    "products": "b1f70172fecca6b757beec12b1abf396c3e0dc5b155cdcad660b2b2923ead4e7",
+    "products": "a4e9c7df46b565c3723afdc3a48988e069ba278c556fc32e469e0252f547fe53",
     "assignments": "4523cf7f73b80b1639ee60ee8215c9a1c3c0f5df2cb3d4484fef88008aee67f2",
     "scans": "79ab8a2119a83e3ba9c5972d6dc73d320cc93a1e49f08050c0904e88e1241700",
     "packing_runs": "08b0391e230a360275624d7d2b7ce0172d7f3e76c3a0f3ae6f4fa515aeb98242",
     "finished_products": "3eacd61bf885ddaa91a1adc7c0f0e1194159fbf1cb917f09c255f8b9c1c9b268",
-    "scan_log_health": "e32c981053ac41d691314c0c1491c6576a89a1bfdf1876246e7664d9b5c46364",
+    "scan_log_health": "7080355c0561f760df9dfbb5296abfaeb8c063ec462abd728e9d8b79491373e7",
     "truth": "531509f1cea6fcaa891507439340439dda9698559daa8b712835dbd947259314"
   }
 }

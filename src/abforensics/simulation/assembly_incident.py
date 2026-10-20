@@ -1,42 +1,43 @@
-"""Case 01 data-generating process: a checkout experiment with an exposure-logging incident.
+"""Case 01 data-generating process: an assembly-station experiment with a scan-logging incident.
 
 Everything here is simulated. The generator produces the six long-format tables described
-in the Case 01 README (Data provenance), a ``truth`` table of per-user potential outcomes
+in the Case 01 README (Data provenance), a ``truth`` table of per-product potential outcomes
 written for audit (no analysis reads it; the operating-characteristic runner computes the
 same quantities in memory from ``simulate_population``), and a manifest recording the seed,
 every parameter and the realised row counts.
 
-Three layers sit between assignment and the analysed population:
+Three layers sit between routing and the analysed population:
 
-* Rendering. Every eligible user requests the checkout page. For a fixed share of them
-  (``legacy_route_probability``), independently of arm and covariates, the page falls back to
-  the server-rendered legacy checkout and neither widget renders. They can still load the
-  payment step and order through the fallback, but they cannot be affected by the widget,
-  so their treatment potential outcome equals their control one. The exposed population is
-  therefore a genuine subset of the assigned one with its own valid, exposure-conditioned
-  estimand, and the intent-to-treat effect is the rendered effect diluted by the render rate.
-* The incident (section 7 of the spec). Among rendered users on the affected platform below
-  the version threshold, the analytics emitter loses the render event with a fixed
-  probability in the arm(s) named by ``affects_arm``. The loss is drawn at random within the
-  cell, independently of the user's outcome and latency. Assignment is unaffected and only
-  the logged exposure changes.
-* The latency guardrail is recorded by the widget's own timing event, so it is missing
-  wherever the render event is missing, and for fallback users.
+* Reaching the scanner. Every eligible product is routed to a station. For a fixed share of
+  them (``legacy_route_probability``), independently of arm and covariates, the product
+  takes the legacy route and never reaches the station's scanner. It can still be packed and
+  finished through the legacy route, but the station cannot affect it, so its treatment
+  potential outcome equals its control one. The scanned population is therefore a genuine
+  subset of the routed one with its own valid, scan-conditioned estimand, and the
+  intent-to-treat effect is the effect among scanned products diluted by the scan rate.
+* The incident (section 7 of the spec). Among products that reach the scanner on the
+  affected supply line below the batch threshold, the scan logger drops the scan event with
+  a fixed probability in the arm(s) named by ``affects_arm``. The loss is drawn at random
+  within the cell, independently of the product's outcome and cycle time. Routing is
+  unaffected and only the logged scan changes.
+* The cycle-time guardrail is recorded by the station's own timing event, so it is missing
+  wherever the scan event is missing, and for legacy-route products.
 
-Server-side renders are known to the platform only as aggregate counts per platform, app
-version and day (the ``scan_log_health`` table); no user-level server-side render log
-exists, so an analyst cannot re-trigger on server renders.
+Station-side scans are known only as aggregate counts per supply line, component batch and
+day (the ``scan_log_health`` table); no product-level station-side scan log exists, so an
+analyst cannot re-trigger on station scans.
 
 Random streams. ``simulate_population`` spawns one independent child stream per block
-(covariates, arrival times, assignment salt, rendering, outcomes, render-event loss, order
-timing), and every per-user quantity is a deterministic function of a fixed number of
-uniforms per user (inverse-CDF sampling). For a fixed number of users, changing a parameter
-therefore changes only the quantities that depend on it, user by user; every other draw is
-identical, so two configs run with the same seed share common random numbers. Changing
-``days`` or ``eligible_products_per_day`` changes the number of users and redraws every block
-except the assignment hash. The event-level details added by ``simulate_assembly_experiment``
-(payment-step loads, latencies, amounts, refunds) come from the parent generator and do not
-share common random numbers across configs; no operating characteristic depends on them.
+(covariates, arrival times, assignment salt, reaching the scanner, outcomes, scan-event loss,
+finishing timing), and every per-product quantity is a deterministic function of a fixed
+number of uniforms per product (inverse-CDF sampling). For a fixed number of products,
+changing a parameter therefore changes only the quantities that depend on it, product by
+product; every other draw is identical, so two configs run with the same seed share common
+random numbers. Changing ``days`` or ``eligible_products_per_day`` changes the number of
+products and redraws every block except the assignment hash. The event-level details added by
+``simulate_assembly_experiment`` (packing-step runs, cycle times, values, returns) come from the
+parent generator and do not share common random numbers across configs; no operating
+characteristic depends on them.
 
 Two paths share one core:
 
@@ -64,40 +65,40 @@ from scipy.special import expit, logit
 
 from abforensics import __version__
 
-SUPPLY_LINES = ("ios", "android", "web")
+SUPPLY_LINES = ("B", "A", "C")
 SUPPLY_LINE_SHARES = (0.40, 0.40, 0.20)
-BATCHES = ("8.1", "8.2", "8.3", "8.4", "8.5", "8.6")
+BATCHES = ("1", "2", "3", "4", "5", "6")
 BATCH_SHARES = (0.04, 0.08, 0.13, 0.20, 0.25, 0.30)
 COUNTRIES = ("DE", "DK", "NL", "GB", "ES")
 COUNTRY_SHARES = (0.30, 0.10, 0.20, 0.25, 0.15)
 WEEKDAY_WEIGHTS = (1.00, 1.05, 1.05, 1.10, 1.15, 0.85, 0.80)  # Monday first
 
-# Conversion model on the logit scale. Platform and app-version effects are fixed so that
-# the incident's affected cell (Android, old versions) is the lowest-converting one, which
-# is what makes the exposure-conditioned estimate biased upwards. The affected-cell offset
+# Yield model on the logit scale. Supply-line and batch effects are fixed so that the
+# incident's affected cell (supply line A, older batches) is the lowest-yielding one, which
+# is what makes the scan-conditioned estimate biased upwards. The affected-cell offset
 # is a default: config key ``older_batch_logit_offset`` overrides it for the sweep.
-SUPPLY_LINE_LOGIT = {"ios": 0.30, "android": -0.30, "web": 0.0}
+SUPPLY_LINE_LOGIT = {"B": 0.30, "A": -0.30, "C": 0.0}
 OLDER_BATCH_LOGIT = -0.30
 PRE_FINISHED_LOGIT_PER_LOG1P = 0.25
-# Pre-period orders: zero-inflated negative binomial. The structural-zero share below comes
+# Pre-period finished count: zero-inflated negative binomial. The structural-zero share below comes
 # on top of the negative binomial's own zeros, P(NB = 0) = (0.8 / 2.8) ** 0.8 = 0.37, so the
-# share of users with no pre-period order is 0.81 outside the affected cell and 0.87 inside.
+# share of products with no pre-period finish is 0.81 outside the affected cell and 0.87 inside.
 ZERO_INFLATION = 0.70
 NB_MEAN, NB_DISPERSION = 2.0, 0.8
-# Users who have not updated the app are less engaged: more zeros, fewer orders when non-zero.
+# Products from older component batches finish less: more zeros, fewer finishes when non-zero.
 OLDER_BATCH_ZERO_INFLATION = 0.78
 OLDER_BATCH_NB_MEAN = 1.6
 
-LEGACY_ROUTE_PROBABILITY = 0.15  # default share of eligible users whose widget never renders
+LEGACY_ROUTE_PROBABILITY = 0.15  # default share of eligible products that never reach the scanner
 AFFECTS_ARM_VALUES = ("treatment", "control", "both")
 
-PACKING_STEP_ERROR_RATE = 0.04  # per load of the payment step, identical by arm
-EXTRA_LOADS_POISSON = 0.30  # payment-step loads per user: 1 + Poisson(0.30)
+PACKING_STEP_ERROR_RATE = 0.04  # per packing-step run, identical by arm
+EXTRA_LOADS_POISSON = 0.30  # packing-step runs per product: 1 + Poisson(0.30)
 CYCLE_TIME_LOG_MEAN, CYCLE_TIME_LOG_SD = np.log(1200.0), 0.35  # ms
 AMOUNT_LOG_MEAN, AMOUNT_LOG_SD = np.log(48.0), 0.60  # currency units
-RECORDS_DELAY_MEAN_HOURS = 20.0  # eligibility to order: exponential, truncated to the window
-RETURN_PROBABILITY = 0.05  # per order, identical by arm
-RETURN_WINDOW_DAYS = 14  # refunds land uniformly within this many days of the order
+RECORDS_DELAY_MEAN_HOURS = 20.0  # eligibility to finish: exponential, truncated to the window
+RETURN_PROBABILITY = 0.05  # per finished product, identical by arm
+RETURN_WINDOW_DAYS = 14  # returns land uniformly within this many days of finishing
 
 HASH_SALT = 0x9E3779B97F4A7C15  # default for ``hash_assign`` when called directly
 
@@ -123,8 +124,8 @@ CONFIG_KEYS = frozenset(
 INCIDENT_KEYS = frozenset({"supply_line", "batch_below", "scan_loss_probability", "affects_arm"})
 
 _SUPPLY_LINE_LOGIT_BY_INDEX = np.asarray([SUPPLY_LINE_LOGIT[p] for p in SUPPLY_LINES])
-_BATCH_LABELS = np.asarray((*BATCHES, "web"))
-_WEB_INDEX = SUPPLY_LINES.index("web")
+_BATCH_LABELS = np.asarray((*BATCHES, "untagged"))
+_WEB_INDEX = SUPPLY_LINES.index("C")
 _VERSION_PATTERN = re.compile(r"^\d+(\.\d+)*$")
 _STREAMS = ("covariates", "arrival", "salt", "render", "outcome", "loss", "timing")
 
@@ -134,9 +135,9 @@ def version_tuple(v: str) -> tuple[int, ...]:
 
 
 def batch_below_check(versions: np.ndarray, threshold: str) -> np.ndarray:
-    """Elementwise ``version < threshold`` for dotted version strings."""
+    """Elementwise ``batch < threshold`` for batch labels; ``untagged`` is never below."""
     thr = version_tuple(threshold)
-    return np.asarray([version_tuple(v) < thr if v != "web" else False for v in versions])
+    return np.asarray([version_tuple(v) < thr if v != "untagged" else False for v in versions])
 
 
 def hash_assign(product_ids: np.ndarray, salt: int = HASH_SALT) -> np.ndarray:
@@ -233,16 +234,16 @@ def validate_config(config: Mapping[str, Any]) -> DGPParameters:
     if lift <= -1.0:
         raise ValueError(f"true_relative_lift must be above -1; got {lift!r}")
     supply_line = incident["supply_line"]
-    if supply_line not in SUPPLY_LINES or supply_line == "web":
+    if supply_line not in SUPPLY_LINES or supply_line == "C":
         raise ValueError(
-            f"incident.supply_line must be one of {SUPPLY_LINES[:_WEB_INDEX]} (web has no app "
-            f"version); got {supply_line!r}"
+            f"incident.supply_line must be one of {SUPPLY_LINES[:_WEB_INDEX]} (C has no "
+            f"component batch); got {supply_line!r}"
         )
     threshold = incident["batch_below"]
     if not isinstance(threshold, str) or not _VERSION_PATTERN.match(threshold):
         raise ValueError(
-            "incident.batch_below must be a quoted dotted version string such as "
-            f'"8.4" (an unquoted 8.10 would parse as the number 8.1); got {threshold!r}'
+            "incident.batch_below must be a quoted batch number such as "
+            f'"4" (quoting keeps it a label, as in the data); got {threshold!r}'
         )
     affects = str(incident["affects_arm"])
     affected_arms(affects)
@@ -282,25 +283,25 @@ def validate_config(config: Mapping[str, Any]) -> DGPParameters:
 
 @dataclass(frozen=True)
 class Population:
-    """Arrays for one simulated experiment. All arrays are aligned on user index."""
+    """Arrays for one simulated experiment. All arrays are aligned on product index."""
 
     product_id: np.ndarray
     supply_line_idx: np.ndarray  # index into SUPPLY_LINES
-    version_idx: np.ndarray  # index into BATCHES, len(BATCHES) for web
+    version_idx: np.ndarray  # index into BATCHES, len(BATCHES) for untagged
     country_idx: np.ndarray  # index into COUNTRIES
     pre_period_finished_28d: np.ndarray
     assigned_at: np.ndarray  # hours since experiment start
     arm: np.ndarray  # 1 treatment, 0 control
     p_control: np.ndarray
-    p_treatment: np.ndarray  # equals p_control for users served the fallback
+    p_treatment: np.ndarray  # equals p_control for legacy-route products
     y0: np.ndarray
     y1: np.ndarray
-    reached_scanner: np.ndarray  # bool: the widget rendered (arm-independent)
-    loss_uniform: np.ndarray  # uniform draw deciding render-event loss, per user
-    scan_logged: np.ndarray  # bool: rendered and the render event survived the incident
-    in_older_batch: np.ndarray  # bool: android below threshold (both arms)
-    records_delay_hours: np.ndarray  # eligibility to order, if the user orders
-    arrival_delay_hours: np.ndarray  # order to receipt by the batch pipeline
+    reached_scanner: np.ndarray  # bool: reached the scanner (arm-independent)
+    loss_uniform: np.ndarray  # uniform draw deciding scan-event loss, per product
+    scan_logged: np.ndarray  # bool: reached the scanner and the scan event survived the incident
+    in_older_batch: np.ndarray  # bool: supply line A below the batch threshold (both arms)
+    records_delay_hours: np.ndarray  # eligibility to finish, if the product finishes
+    arrival_delay_hours: np.ndarray  # finish to receipt by the records pipeline
     realised_control_rate: float
     extras: Mapping[str, Any] = field(default_factory=dict)
 
@@ -325,15 +326,15 @@ class Population:
         return int(self.product_id.size)
 
     def received_by(self, hours: float) -> np.ndarray:
-        """Converters whose order the pipeline has delivered by ``hours`` after the start."""
+        """Finished products the pipeline has delivered by ``hours`` after the start."""
         received = self.assigned_at + self.records_delay_hours + self.arrival_delay_hours
         return (self.y == 1) & (received <= hours)
 
     def logged_under(self, loss_probability: float, affects_arm: str) -> np.ndarray:
-        """Exposure mask the same population would have under another incident setting.
+        """Scan-logged mask the same population would have under another incident setting.
 
         Uses the population's own loss draws, so every setting is evaluated on the same
-        users, assignment and outcomes (common random numbers across incident settings).
+        products, routing and outcomes (common random numbers across incident settings).
         """
         p = _as_probability("loss_probability", loss_probability)
         in_hit_arm = np.isin(self.arm, affected_arms(affects_arm))
@@ -367,7 +368,7 @@ def _calibrate_intercept(
 
 
 def _categorical(u: np.ndarray, shares: tuple[float, ...]) -> np.ndarray:
-    """Inverse-CDF draw of category indices from one uniform per user."""
+    """Inverse-CDF draw of category indices from one uniform per product."""
     cdf = np.cumsum(shares)
     cdf[-1] = 1.0
     return np.searchsorted(cdf, u, side="right")
@@ -393,7 +394,7 @@ _PRE_FINISHED_CDF = {
 
 
 def simulate_population(config: Mapping[str, Any], rng: np.random.Generator) -> Population:
-    """Draw one experiment's population, potential outcomes, incident flags and order timing.
+    """Draw one experiment's population, potential outcomes, incident flags and finishing timing.
 
     ``config`` is the parsed ``config.yaml`` of the case; ``validate_config`` lists the keys
     it reads and rejects invalid values. See the module docstring for the random streams.
@@ -436,9 +437,9 @@ def simulate_population(config: Mapping[str, Any], rng: np.random.Generator) -> 
     salt = int(streams["salt"].integers(0, 2**63 - 1))
     arm = hash_assign(product_id, salt)
 
-    # The linear predictor takes few distinct values (platform x cell x pre-period orders),
+    # The linear predictor takes few distinct values (supply line x cell x pre-period finishes),
     # so the intercept is calibrated on a lookup table of those values weighted by their
-    # counts rather than on n users.
+    # counts rather than on n products.
     stride = int(pre_finished.max()) + 1
     key = (supply_line_idx * 2 + older_batch.astype(np.int64)) * stride + pre_finished
     counts = np.bincount(key, minlength=len(SUPPLY_LINES) * 2 * stride).astype(float)
@@ -472,8 +473,8 @@ def simulate_population(config: Mapping[str, Any], rng: np.random.Generator) -> 
     lost = reached_scanner & older_batch & in_hit_arm & (loss_uniform < prm.loss_probability)
     scan_logged = reached_scanner & ~lost
 
-    # Order timing, drawn for every user (used only where the user orders): time from
-    # eligibility to order, exponential truncated to the outcome window, and the batch
+    # Finishing timing, drawn for every product (used only where it finishes): time from
+    # eligibility to finishing, exponential truncated to the outcome window, and the records
     # pipeline's delivery delay, uniform, identical in both arms.
     timing = streams["timing"].random((2, n))
     records_delay = np.minimum(
@@ -577,11 +578,11 @@ def simulate_assembly_experiment(
         }
     )
 
-    # Payment-step loads: one or more per eligible user (every eligible user reaches the
-    # checkout page), through the widget where it rendered and through the legacy fallback
-    # where it did not. ``packing_step_error`` marks a load on which the payment step raised
-    # a client error; a load is not a payment, so most loads end without an order. Latency
-    # comes from the widget's timing event, so it exists only where the render event was
+    # Packing-step runs: one or more per eligible product (every eligible product reaches
+    # the packing step), through the station where the product reached the scanner and through
+    # the legacy route where it did not. ``packing_step_error`` marks a run on which the
+    # packing step raised an error; a run is not a finish, so most runs end without one. Cycle
+    # time comes from the station's timing event, so it exists only where the scan event was
     # logged.
     n_loads = 1 + rng.poisson(EXTRA_LOADS_POISSON, size=n)
     load_product = np.repeat(pop.product_id, n_loads)
@@ -599,10 +600,10 @@ def simulate_assembly_experiment(
         }
     )
 
-    # Orders: converters place one order within the outcome window; the batch pipeline
-    # delivers it 0 to 36 hours later, identically in both arms (timing drawn in
-    # ``simulate_population``). A fixed share of orders is refunded within 14 days,
-    # identically in both arms; returned_at is NaT otherwise.
+    # Finished products: a product that finishes does so once within the outcome window; the
+    # records pipeline delivers the record 0 to 36 hours later, identically in both arms
+    # (timing drawn in ``simulate_population``). A fixed share of finished products is returned
+    # within 14 days, identically in both arms; returned_at is NaT otherwise.
     y = pop.y.astype(bool)
     n_finished = int(y.sum())
     finished_at = assigned_ts[y] + pd.to_timedelta(pop.records_delay_hours[y], "h")
@@ -623,8 +624,8 @@ def simulate_assembly_experiment(
     )
 
     # Telemetry health: a monitoring table, arms pooled, as an observability system would
-    # publish it by comparing server-side widget renders with analytics render events.
-    # Event loss rate = 1 - logged render events / rendered widgets.
+    # publish it by comparing station-side scans with logged scan events.
+    # Event loss rate = 1 - logged scan events / station-side scans.
     day = (pop.assigned_at // 24).astype(int)
     r = pop.reached_scanner
     health = (
@@ -661,7 +662,7 @@ def simulate_assembly_experiment(
         "seed": seed,
         "config": _jsonable(config),
         "true_relative_lift": float(config["true_relative_lift"]),
-        "true_relative_lift_applies_to": "users whose widget renders",
+        "true_relative_lift_applies_to": "products that reach the scanner",
         "expected_ate_absolute": pop.expected_ate_absolute(),
         "expected_ate_absolute_reached_scanner": pop.expected_ate_absolute(pop.reached_scanner),
         "expected_relative_lift_itt": pop.expected_relative_lift(),
@@ -700,7 +701,7 @@ def simulate_assembly_experiment(
 
 
 def _loss_rate(pop: Population) -> float:
-    """Share of rendered, affected-cell treatment users whose render event was lost."""
+    """Share of scanned, affected-cell treatment products whose scan event was lost."""
     mask = pop.in_older_batch & (pop.arm == 1) & pop.reached_scanner
     return float(1.0 - pop.scan_logged[mask].mean()) if mask.any() else 0.0
 
