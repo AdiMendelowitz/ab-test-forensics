@@ -7,23 +7,23 @@ each replicate of the generator, all through the package's ``difference_in_propo
 so the interval whose coverage is measured is the one the case's decision rule reads (delta
 method on the log ratio, exponentiated for the relative lift):
 
-* ``dashboard_day14``: what the dashboard shows on day 14, users with a logged render
-  event and orders received by the end of day 14;
-* ``scanned_complete``: the same population on complete data (every order counted);
-* ``scanned_excluding_older_batch``: logged users outside the affected segment in both arms, a
+* ``dashboard_day14``: what the dashboard shows on day 14, products with a logged scan
+  event and finishes received by the end of day 14;
+* ``scanned_complete``: the same population on complete data (every finish counted);
+* ``scanned_excluding_older_batch``: logged products outside the affected segment in both arms, a
   pre-treatment exclusion, on complete data;
-* ``itt_routed``: the pre-registered analysis, all assigned users on complete data.
+* ``itt_routed``: the pre-registered analysis, all routed products on complete data.
 
-The three exposure-based estimators target the relative lift among rendered users (for the
-segment-excluded one, among rendered users outside the segment); with a constant relative
+The three scan-based estimators target the relative lift among products that reach the scanner
+(for the segment-excluded one, among those outside the segment); with a constant relative
 effect these all equal the configured lift, whatever the weighting by segment or timing.
-The ITT estimator targets the relative lift among all eligible users, the decision
+The ITT estimator targets the relative lift among all eligible products, the decision
 estimand. Targets are computed per replicate from the potential-outcome probabilities, never
-from the logged users. Each estimator is scored against its own target (``bias``,
+from the logged products. Each estimator is scored against its own target (``bias``,
 ``coverage``) and against the decision estimand (``bias_vs_itt``, ``coverage_vs_itt``).
 ``rule_ship`` applies the pre-declared rule (lower relative bound above the margin) to each
 estimator's own estimate, as a dashboard would; ``rule_ship_itt_scale`` first rescales an
-exposure-based lower bound to the ITT scale by the replicate's dilution factor, separating
+scan-based lower bound to the ITT scale by the replicate's dilution factor, separating
 the change of scale from the gain in power. These are operating characteristics of the
 rule in simulation; the package still never emits a decision about real data.
 
@@ -125,9 +125,9 @@ def scenario_config(
 
 
 class _LossCounts:
-    """Per-arm counts of users whose render event can be lost, sorted by their loss draw.
+    """Per-arm counts of products whose scan event can be lost, sorted by their loss draw.
 
-    Evaluating a loss probability p then costs one ``searchsorted`` per arm: the lost users
+    Evaluating a loss probability p then costs one ``searchsorted`` per arm: the lost products
     are the candidates with a draw below p, and cumulative sums give their conversions.
     """
 
@@ -201,7 +201,7 @@ def _one_replicate(
             }
         l1, l0 = logged[1], logged[0]
         srm_scan_level = srm_check(
-            {"treatment": l1["n"], "control": l0["n"]}, _ALLOCATION, level="exposure"
+            {"treatment": l1["n"], "control": l0["n"]}, _ALLOCATION, level="scan"
         )
         results = {
             "dashboard_day14": (
@@ -511,7 +511,7 @@ def run_scenarios(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Scenarios A to D and F (spec section 10). Returns (summary, replicates).
 
-    ``lift`` is the true relative lift among rendered users for the effect scenarios; it
+    ``lift`` is the true relative lift among scanned products for the effect scenarios; it
     defaults to the config's ``true_relative_lift``. The summary has one row per scenario x
     estimator; the long replicate table feeds ``paired_contrasts`` and ``case_story``.
     """
@@ -543,7 +543,7 @@ def run_sweep(
     """Scenario D (effect, incident on) at each value of one parameter in ``SWEEPABLE``.
 
     A sweep over the loss probability is evaluated on one population per replicate (the
-    loss only changes which render events are logged); any other parameter redraws the
+    loss only changes which scan events are logged); any other parameter redraws the
     population at each value from the same seeds.
     """
     if parameter not in SWEEPABLE:

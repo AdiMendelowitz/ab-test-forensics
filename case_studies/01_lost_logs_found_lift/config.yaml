@@ -37,8 +37,8 @@ decision_rule:
     cycle_time_p95_max_increase_relative: 0.05          # must pass; product-clustered bootstrap
     return_rate_max_increase_relative: 0.10          # breach-only
 incident:
-  supply_line: android
-  batch_below: "8.4"
+  supply_line: A
+  batch_below: "4"
   scan_loss_probability: 0.35
   affects_arm: treatment
 records_pipeline:

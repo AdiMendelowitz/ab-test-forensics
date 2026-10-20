@@ -43,8 +43,8 @@ SMALL = {
     "decision_rule": {"ship_if_lower_bound_above_relative": 0.01},
     "records_pipeline": {"arrival_delay_hours": {"min": 0, "max": 36}},
     "incident": {
-        "supply_line": "android",
-        "batch_below": "8.4",
+        "supply_line": "A",
+        "batch_below": "4",
         "scan_loss_probability": 0.35,
         "affects_arm": "treatment",
     },
