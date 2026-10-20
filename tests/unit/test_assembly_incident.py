@@ -33,8 +33,8 @@ SMALL_CONFIG = {
     "outcome_window_days": 7,
     "legacy_route_probability": 0.15,
     "incident": {
-        "supply_line": "android",
-        "batch_below": "8.4",
+        "supply_line": "A",
+        "batch_below": "4",
         "scan_loss_probability": 0.35,
         "affects_arm": "treatment",
     },
@@ -52,8 +52,8 @@ def data() -> AssemblyExperimentData:
 
 
 def test_version_below() -> None:
-    versions = np.asarray(["8.1", "8.3", "8.4", "8.10", "web"])
-    assert batch_below_check(versions, "8.4").tolist() == [True, True, False, False, False]
+    versions = np.asarray(["1", "3", "4", "10", "untagged"])
+    assert batch_below_check(versions, "4").tolist() == [True, True, False, False, False]
 
 
 def test_hash_assign_is_deterministic_and_balanced() -> None:
@@ -129,8 +129,8 @@ def test_incident_hits_exactly_the_older_batch(data: AssemblyExperimentData) -> 
     merged = data.truth.merge(data.products, on="product_id").merge(
         data.assignments, on="product_id"
     )
-    older_batch = (merged["supply_line"] == "android") & batch_below_check(
-        merged["batch"].to_numpy(), "8.4"
+    older_batch = (merged["supply_line"] == "A") & batch_below_check(
+        merged["batch"].to_numpy(), "4"
     )
     assert (merged["in_older_batch"] == older_batch).all()
 
@@ -233,7 +233,7 @@ def test_per_product_draws_survive_a_moved_older_batch() -> None:
     # Moving the version threshold changes cell membership and the pre-period distribution
     # only for users whose membership changes; everyone else keeps every draw.
     base = simulate_population(SMALL_CONFIG, np.random.default_rng(9))
-    other = simulate_population(_with_incident(batch_below="8.2"), np.random.default_rng(9))
+    other = simulate_population(_with_incident(batch_below="2"), np.random.default_rng(9))
     for name in ("arm", "assigned_at", "reached_scanner", "loss_uniform", "supply_line_idx"):
         assert np.array_equal(getattr(base, name), getattr(other, name)), name
     same_older = base.in_older_batch == other.in_older_batch
@@ -296,9 +296,9 @@ def test_invalid_config_values_are_rejected(change: dict, message: str) -> None:
 @pytest.mark.parametrize(
     ("incident_change", "message"),
     [
-        ({"supply_line": "web"}, "incident.supply_line"),
+        ({"supply_line": "C"}, "incident.supply_line"),
         ({"supply_line": "windows"}, "incident.supply_line"),
-        ({"batch_below": 8.1}, "batch_below"),
+        ({"batch_below": 4}, "batch_below"),
         ({"batch_below": "8.x"}, "batch_below"),
         ({"scan_loss_probability": 1.5}, "scan_loss_probability"),
         ({"scan_loss_probability": True}, "scan_loss_probability"),
@@ -323,7 +323,7 @@ def test_truth_matches_the_configured_effect(data: AssemblyExperimentData) -> No
     t = data.truth
     ratio = t["p_treatment"] / t["p_control"]
     assert np.allclose(ratio[t["reached_scanner"]], 1.03)
-    assert np.allclose(ratio[~t["reached_scanner"]], 1.0)  # no widget, no effect
+    assert np.allclose(ratio[~t["reached_scanner"]], 1.0)  # never reached the scanner, no effect
     assert t["p_control"].mean() == pytest.approx(0.032, abs=1e-9)  # calibrated intercept
     assert (t["y1"] >= t["y0"]).all()  # common random numbers, positive lift
     assert (t.loc[~t["reached_scanner"], "y1"] == t.loc[~t["reached_scanner"], "y0"]).all()
@@ -367,7 +367,7 @@ def test_returns_within_window_at_configured_rate(data: AssemblyExperimentData) 
 
 
 def test_every_eligible_product_has_a_run(data: AssemblyExperimentData) -> None:
-    # Fallback users (no widget render) still attempt payment through the legacy checkout.
+    # Legacy-route products (never scanned) still run the packing step through the legacy route.
     assert set(data.packing_runs["product_id"]) == set(data.products["product_id"])
 
 
@@ -388,7 +388,7 @@ def test_cycle_time_missing_exactly_where_scan_is_missing(data: AssemblyExperime
 
 def test_scan_log_health_flags_only_the_older_batch(data: AssemblyExperimentData) -> None:
     h = data.scan_log_health
-    affected = (h["supply_line"] == "android") & batch_below_check(h["batch"].to_numpy(), "8.4")
+    affected = (h["supply_line"] == "A") & batch_below_check(h["batch"].to_numpy(), "4")
     assert (h.loc[~affected, "event_loss_rate"] == 0).all()
     # Pooled over arms the affected cell loses ~0.35 * 0.5 = 17.5% of rendered events.
     assert 0.10 < h.loc[affected, "event_loss_rate"].mean() < 0.25

@@ -94,19 +94,19 @@ def normalise_line_endings(path: Path) -> None:
 
 OC_CONTRASTS = (
     (
-        "C: exposed minus ITT, rejects zero",
+        "C: logged scans minus ITT, rejects zero",
         ("C", "scanned_complete"),
         ("C", "itt_routed"),
         "rejected",
     ),
     (
-        "C: exposed minus ITT, ship rule",
+        "C: logged scans minus ITT, ship rule",
         ("C", "scanned_complete"),
         ("C", "itt_routed"),
         "rule_ship",
     ),
     (
-        "C: exposed (bound rescaled to the ITT lift) minus ITT, ship rule",
+        "C: logged scans (bound rescaled to the ITT lift) minus ITT, ship rule",
         ("C", "scanned_complete"),
         ("C", "itt_routed"),
         "rule_ship_itt_scale",
@@ -130,7 +130,7 @@ OC_CONTRASTS = (
         "covered",
     ),
     (
-        "D: dashboard day 14 minus exposed complete, ship rule",
+        "D: dashboard day 14 minus logged scans complete, ship rule",
         ("D", "dashboard_day14"),
         ("D", "scanned_complete"),
         "rule_ship",
@@ -141,7 +141,7 @@ OC_CONTRASTS = (
         ("D", "itt_routed"),
         "rejected",
     ),
-    ("F minus C: exposed bias", ("F", "scanned_complete"), ("C", "scanned_complete"), "err"),
+    ("F minus C: logged-scan bias", ("F", "scanned_complete"), ("C", "scanned_complete"), "err"),
 )
 
 

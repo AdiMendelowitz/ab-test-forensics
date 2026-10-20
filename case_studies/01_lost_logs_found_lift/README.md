@@ -164,8 +164,8 @@ The code and data keep the generator's original identifiers; this key maps them 
 |---|---|
 | product | `product_id`, `products` table |
 | old station / new station | `arm` = `control` / `treatment` |
-| supply line A / B / C | `supply_line` = `android` / `ios` / `web` |
-| batch 1 to 6, untagged | `batch` = `8.1` to `8.6`, `web` |
+| supply line A / B / C | `supply_line` = `A` / `B` / `C` |
+| batch 1 to 6, untagged | `batch` = `1` to `6`, `untagged` |
 | scan | `scans` table |
 | reached the scanner | `truth.reached_scanner` |
 | scan logged | `truth.scan_logged` |

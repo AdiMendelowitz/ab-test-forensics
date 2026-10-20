@@ -3,7 +3,7 @@
 ## 28 September 2026 (unreleased)
 
 - Repository scaffold, package skeleton, `srm_check` with unit tests.
-- Case 01 generator `simulate_checkout_experiment` (six event tables, truth table, manifest with content checksums) and `abf simulate case01`.
+- Case 01 generator `simulate_assembly_experiment` (six event tables, truth table, manifest with content checksums) and `abf simulate case01`.
 - Case 01 design specification (kept outside the repository).
 - `difference_in_proportions`, `invariant_check`, `exposure_rate_by_segment`, `event_arrival_lag` with unit tests; `reporting.style`.
 - Case 01 notebook executed with three figures, README, decision memo and data contract.
