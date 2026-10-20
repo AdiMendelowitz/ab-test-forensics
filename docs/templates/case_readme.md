@@ -25,6 +25,9 @@ Decision rule (pre-declared): <thresholds and actions>.
 ## Diagnostic evidence
 <The two or three decisive figures with one sentence each.>
 
+## Operating characteristics
+<Replicated scenarios: bias, coverage and rejection rates per estimator, each with its Monte Carlo standard error.>
+
 ## Result and recommendation
 <Naive versus corrected estimate against the practical threshold. The recommendation and what evidence would change it.>
 
@@ -44,3 +47,6 @@ Decision rule (pre-declared): <thresholds and actions>.
 ```
 uv run abf simulate caseNN && uv run abf run caseNN && uv run abf oc caseNN
 ```
+
+## Sources
+<Papers and documents the case relies on, with the claim each supports.>

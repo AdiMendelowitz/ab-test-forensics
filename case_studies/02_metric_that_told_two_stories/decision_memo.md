@@ -1,7 +1,7 @@
 # Decision memo: feed-ranking change, click-through rate and engagement
 
 To: Feed product lead
-From: Adi
+From: Experimentation analyst
 Date: 11 October 2026
 
 Recommendation: do not ship the ranking change as an engagement gain; decide it on its own efficiency rule if the serving-cost case matters.

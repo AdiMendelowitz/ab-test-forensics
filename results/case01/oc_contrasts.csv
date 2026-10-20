@@ -1,10 +1,10 @@
 contrast,metric,a,b,B,a_value,b_value,difference,paired_mc_se,unpaired_mc_se
-"C: exposed minus ITT, rejects zero",rejected,C/exposed_complete,C/itt_assigned,5000,0.261,0.232,0.029,0.004394958832,0.00861544225
-"C: exposed minus ITT, ship rule",rule_ship,C/exposed_complete,C/itt_assigned,5000,0.1402,0.1108,0.0294,0.003788139121,0.006619835983
-"C: exposed (bound rescaled to the ITT lift) minus ITT, ship rule",rule_ship_itt_scale,C/exposed_complete,C/itt_assigned,5000,0.1228,0.1108,0.012,0.00364058385,0.006423157743
+"C: exposed minus ITT, rejects zero",rejected,C/scanned_complete,C/itt_routed,5000,0.261,0.232,0.029,0.004394958832,0.00861544225
+"C: exposed minus ITT, ship rule",rule_ship,C/scanned_complete,C/itt_routed,5000,0.1402,0.1108,0.0294,0.003788139121,0.006619835983
+"C: exposed (bound rescaled to the ITT lift) minus ITT, ship rule",rule_ship_itt_scale,C/scanned_complete,C/itt_routed,5000,0.1228,0.1108,0.012,0.00364058385,0.006423157743
 B minus A: dashboard rejects zero,rejected,B/dashboard_day14,A/dashboard_day14,5000,0.1066,0.0498,0.0568,0.004289339307,0.00534012953
 D minus C: dashboard ship rule,rule_ship,D/dashboard_day14,C/dashboard_day14,5000,0.3296,0.127,0.2026,0.005684814106,0.008147407198
 D minus C: dashboard coverage,covered,D/dashboard_day14,C/dashboard_day14,5000,0.8952,0.9524,-0.0572,0.00426957584,0.005275965046
-"D: dashboard day 14 minus exposed complete, ship rule",rule_ship,D/dashboard_day14,D/exposed_complete,5000,0.3296,0.3604,-0.0308,0.004460297171,0.009503325662
-"D: segment-excluded minus ITT, rejects zero",rejected,D/exposed_excluding_cell,D/itt_assigned,5000,0.2494,0.232,0.0174,0.004731165267,0.008549254117
-F minus C: exposed bias,err,F/exposed_complete,C/exposed_complete,5000,0.0002838264113,0.0003017700206,-1.79436093e-05,4.621620842e-05,0.0004635242574
+"D: dashboard day 14 minus exposed complete, ship rule",rule_ship,D/dashboard_day14,D/scanned_complete,5000,0.3296,0.3604,-0.0308,0.004460297171,0.009503325662
+"D: segment-excluded minus ITT, rejects zero",rejected,D/scanned_excluding_older_batch,D/itt_routed,5000,0.2494,0.232,0.0174,0.004731165267,0.008549254117
+F minus C: exposed bias,err,F/scanned_complete,C/scanned_complete,5000,0.0002838264113,0.0003017700206,-1.79436093e-05,4.621620842e-05,0.0004635242574

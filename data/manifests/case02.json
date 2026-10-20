@@ -215,7 +215,7 @@
     },
     "deferred": {
       "large_variant_feasibility_check": "2026-10-31",
-      "real_guardrail_signal": "open for Adi with the README (spec section 16, item 7; record section 10, 4 Oct 2026)"
+      "real_guardrail_signal": "disclosed in the README"
     }
   },
   "expected_relative_lift_clicks_per_user": -9.70561329727282e-06,

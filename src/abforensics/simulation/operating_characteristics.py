@@ -9,10 +9,10 @@ method on the log ratio, exponentiated for the relative lift):
 
 * ``dashboard_day14``: what the dashboard shows on day 14, users with a logged render
   event and orders received by the end of day 14;
-* ``exposed_complete``: the same population on complete data (every order counted);
-* ``exposed_excluding_cell``: logged users outside the affected segment in both arms, a
+* ``scanned_complete``: the same population on complete data (every order counted);
+* ``scanned_excluding_older_batch``: logged users outside the affected segment in both arms, a
   pre-treatment exclusion, on complete data;
-* ``itt_assigned``: the pre-registered analysis, all assigned users on complete data.
+* ``itt_routed``: the pre-registered analysis, all assigned users on complete data.
 
 The three exposure-based estimators target the relative lift among rendered users (for the
 segment-excluded one, among rendered users outside the segment); with a constant relative
@@ -52,20 +52,20 @@ from scipy import stats
 
 from abforensics.diagnostics.srm import srm_check
 from abforensics.inference.proportions import difference_in_proportions
-from abforensics.simulation.checkout_incident import affected_arms, simulate_population
+from abforensics.simulation.assembly_incident import affected_arms, simulate_population
 
-ESTIMATORS = ("dashboard_day14", "exposed_complete", "exposed_excluding_cell", "itt_assigned")
-EXPOSURE_ESTIMATORS = ESTIMATORS[:3]
+ESTIMATORS = ("dashboard_day14", "scanned_complete", "scanned_excluding_older_batch", "itt_routed")
+SCAN_ESTIMATORS = ESTIMATORS[:3]
 _ALLOCATION = {"control": 0.5, "treatment": 0.5}
-LOSS_KEY = "incident.exposure_loss_probability"
+LOSS_KEY = "incident.scan_loss_probability"
 # Keys a sweep may vary. Anything else raises, so a misspelt key cannot silently produce a
 # flat sweep.
 SWEEPABLE = frozenset(
     {
         LOSS_KEY,
-        "affected_cell_logit_offset",
-        "non_render_probability",
-        "baseline_order_rate",
+        "older_batch_logit_offset",
+        "legacy_route_probability",
+        "baseline_yield_rate",
         "true_relative_lift",
     }
 )
@@ -157,16 +157,16 @@ def _one_replicate(
         _ALLOCATION,
         level="assignment",
     )
-    rendered, cell = pop.rendered, pop.in_affected_cell
-    truth_rendered = pop.expected_relative_lift(rendered)
-    truth_excl = pop.expected_relative_lift(rendered & ~cell)
+    reached_scanner, cell = pop.reached_scanner, pop.in_older_batch
+    truth_reached_scanner = pop.expected_relative_lift(reached_scanner)
+    truth_excl = pop.expected_relative_lift(reached_scanner & ~cell)
     truth_itt = pop.expected_relative_lift()
-    dilution = float(pop.p_control[rendered].sum() / pop.p_control.sum())
+    dilution = float(pop.p_control[reached_scanner].sum() / pop.p_control.sum())
 
     # Loss-independent counts per arm.
     base = {}
     for a, in_arm in arms.items():
-        r = in_arm & rendered
+        r = in_arm & reached_scanner
         rx = r & ~cell
         base[a] = {
             "n_all": int(in_arm.sum()),
@@ -185,8 +185,8 @@ def _one_replicate(
         )
 
     b1, b0 = base[1], base[0]
-    itt = estimate("itt_assigned", b1["y_all"], b1["n_all"], b0["y_all"], b0["n_all"])
-    excl = estimate("exposed_excluding_cell", b1["y_rx"], b1["n_rx"], b0["y_rx"], b0["n_rx"])
+    itt = estimate("itt_routed", b1["y_all"], b1["n_all"], b0["y_all"], b0["n_all"])
+    excl = estimate("scanned_excluding_older_batch", b1["y_rx"], b1["n_rx"], b0["y_rx"], b0["n_rx"])
     no_loss = (0, {"y": 0, "y14": 0})
     rows: list[dict] = []
     for v in variants:
@@ -200,20 +200,20 @@ def _one_replicate(
                 "y14": base[a]["y14_r"] - lost["y14"],
             }
         l1, l0 = logged[1], logged[0]
-        srm_expose = srm_check(
+        srm_scan_level = srm_check(
             {"treatment": l1["n"], "control": l0["n"]}, _ALLOCATION, level="exposure"
         )
         results = {
             "dashboard_day14": (
                 estimate("dashboard_day14", l1["y14"], l1["n"], l0["y14"], l0["n"]),
-                truth_rendered,
+                truth_reached_scanner,
             ),
-            "exposed_complete": (
-                estimate("exposed_complete", l1["y"], l1["n"], l0["y"], l0["n"]),
-                truth_rendered,
+            "scanned_complete": (
+                estimate("scanned_complete", l1["y"], l1["n"], l0["y"], l0["n"]),
+                truth_reached_scanner,
             ),
-            "exposed_excluding_cell": (excl, truth_excl),
-            "itt_assigned": (itt, truth_itt),
+            "scanned_excluding_older_batch": (excl, truth_excl),
+            "itt_routed": (itt, truth_itt),
         }
         for name in ESTIMATORS:
             res, truth = results[name]
@@ -229,10 +229,10 @@ def _one_replicate(
                     "ci_high": hi,
                     "p_value": res.p_value,
                     "rule_margin": margin,
-                    "dilution": dilution if name in EXPOSURE_ESTIMATORS else 1.0,
+                    "dilution": dilution if name in SCAN_ESTIMATORS else 1.0,
                     "n_analysed": res.n_treatment + res.n_control,
                     "assignment_srm_p": srm_assign.p_value,
-                    "exposure_srm_p": srm_expose.p_value,
+                    "scan_srm_p": srm_scan_level.p_value,
                 }
             )
     return rows
@@ -309,7 +309,7 @@ def _replicate_flags(reps: pd.DataFrame) -> pd.DataFrame:
     r["rule_ship_itt_scale"] = r["ci_low"] * r["dilution"] > r["rule_margin"]
     r["err"] = r["estimate"] - r["true_effect"]
     r["err_itt"] = r["estimate"] - r["true_effect_itt"]
-    for level in ("assignment", "exposure"):
+    for level in ("assignment", "scan"):
         for alpha in (0.001, 0.05):
             r[f"{level}_srm_{alpha:g}"] = r[f"{level}_srm_p"] < alpha
     return r
@@ -324,8 +324,8 @@ _RATE_COLUMNS = (
     ("rule_ship_itt_scale", "rule_ship_rate_itt_scale"),
     ("assignment_srm_0.001", "assignment_srm_rate_0.001"),
     ("assignment_srm_0.05", "assignment_srm_rate_0.05"),
-    ("exposure_srm_0.001", "exposure_srm_rate_0.001"),
-    ("exposure_srm_0.05", "exposure_srm_rate_0.05"),
+    ("scan_srm_0.001", "scan_srm_rate_0.001"),
+    ("scan_srm_0.05", "scan_srm_rate_0.05"),
 )
 
 
@@ -421,14 +421,12 @@ def case_story(reps: pd.DataFrame, variant: str = "D", srm_alpha: float = 0.001)
     first = sub.groupby("replicate").first()
     margin = float(first["rule_margin"].iloc[0])
     dash_ship = wide[("ci_low", "dashboard_day14")] > margin
-    itt_extend = (wide[("ci_low", "itt_assigned")] <= margin) & (
-        wide[("ci_high", "itt_assigned")] >= 0
-    )
+    itt_extend = (wide[("ci_low", "itt_routed")] <= margin) & (wide[("ci_high", "itt_routed")] >= 0)
     srm_pass = first["assignment_srm_p"] >= srm_alpha
     story = dash_ship & itt_extend & srm_pass
     rate = _rate(story)
     est = wide["estimate"]
-    gap = est["exposed_complete"] - est["itt_assigned"]
+    gap = est["scanned_complete"] - est["itt_routed"]
     row = {
         "variant": variant,
         "B": int(story.size),
@@ -440,10 +438,10 @@ def case_story(reps: pd.DataFrame, variant: str = "D", srm_alpha: float = 0.001)
         "itt_extend_given_dashboard_ship": float(itt_extend[dash_ship].mean()),
         "mean_dashboard_day14_story": float(est.loc[story, "dashboard_day14"].mean()),
         "mean_dashboard_day14_all": float(est["dashboard_day14"].mean()),
-        "mean_itt_story": float(est.loc[story, "itt_assigned"].mean()),
-        "mean_itt_all": float(est["itt_assigned"].mean()),
-        "mean_gap_exposed_minus_itt_story": float(gap[story].mean()),
-        "mean_gap_exposed_minus_itt_all": float(gap.mean()),
+        "mean_itt_story": float(est.loc[story, "itt_routed"].mean()),
+        "mean_itt_all": float(est["itt_routed"].mean()),
+        "mean_gap_scanned_minus_itt_story": float(gap[story].mean()),
+        "mean_gap_scanned_minus_itt_all": float(gap.mean()),
     }
     return pd.DataFrame([row])
 
@@ -458,7 +456,7 @@ def scenario_variants(
     config: Mapping[str, Any], keys: Sequence[str]
 ) -> list[tuple[bool, list[Variant]]]:
     """Group scenarios by population (null or effect) so each population is drawn once."""
-    loss = float(config["incident"]["exposure_loss_probability"])
+    loss = float(config["incident"]["scan_loss_probability"])
     grouped: dict[bool, list[Variant]] = {}
     for key in keys:
         s = SCENARIOS[key]
@@ -478,7 +476,7 @@ def scenario_summary(
     summary = summarise(reps).rename(columns={"variant": "scenario"})
     spec = summary["scenario"].map(SCENARIOS.__getitem__)
     summary.insert(1, "description", spec.map(lambda s: s.label))
-    summary.insert(2, "tau_rendered", spec.map(lambda s: 0.0 if s.null else lift))
+    summary.insert(2, "tau_reached_scanner", spec.map(lambda s: 0.0 if s.null else lift))
     summary.insert(3, "loss_probability", spec.map(lambda s: loss if s.loss else 0.0))
     summary.insert(4, "affects_arm", spec.map(lambda s: s.affects_arm))
     rank = {k: i for i, k in enumerate(order or SCENARIOS)}
@@ -526,7 +524,7 @@ def run_scenarios(
         cfg = scenario_config(config, lift=0.0 if null else effect)
         reps.append(simulate_replicates(cfg, variants, B, seed, executor=executor, chunks=chunks))
     replicates = pd.concat(reps, ignore_index=True)
-    loss = float(config["incident"]["exposure_loss_probability"])
+    loss = float(config["incident"]["scan_loss_probability"])
     summary = scenario_summary(replicates, effect, loss, order=scenarios)
     return summary, replicates
 
@@ -561,7 +559,7 @@ def run_sweep(
         reps = simulate_replicates(cfg, variants, B, seed, executor=executor, chunks=chunks)
         return loss_summary(reps)
     frames = []
-    loss = float(config["incident"]["exposure_loss_probability"])
+    loss = float(config["incident"]["scan_loss_probability"])
     for value in values:
         cfg = scenario_config(config, lift=effect, overrides={parameter: value})
         reps = simulate_replicates(

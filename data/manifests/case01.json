@@ -5,31 +5,31 @@
   "config": {
     "seed": 20260928,
     "days": 14,
-    "eligible_users_per_day": 20000,
+    "eligible_products_per_day": 20000,
     "allocation": {
       "control": 0.5,
       "treatment": 0.5
     },
-    "baseline_order_rate": 0.032,
+    "baseline_yield_rate": 0.032,
     "true_relative_lift": 0.03,
-    "non_render_probability": 0.15,
-    "affected_cell_logit_offset": -0.3,
+    "legacy_route_probability": 0.15,
+    "older_batch_logit_offset": -0.3,
     "outcome_window_days": 7,
     "decision_rule": {
       "ship_if_lower_bound_above_relative": 0.01,
       "guardrails": {
-        "payment_step_error_max_increase_absolute": 0.003,
-        "latency_p95_max_increase_relative": 0.05,
-        "refund_rate_max_increase_relative": 0.1
+        "packing_step_error_max_increase_absolute": 0.003,
+        "cycle_time_p95_max_increase_relative": 0.05,
+        "return_rate_max_increase_relative": 0.1
       }
     },
     "incident": {
-      "platform": "android",
-      "app_version_below": "8.4",
-      "exposure_loss_probability": 0.35,
+      "supply_line": "android",
+      "batch_below": "8.4",
+      "scan_loss_probability": 0.35,
       "affects_arm": "treatment"
     },
-    "order_pipeline": {
+    "records_pipeline": {
       "arrival_delay_hours": {
         "min": 0,
         "max": 36
@@ -52,7 +52,7 @@
         0.45,
         0.5
       ],
-      "affected_cell_logit_offset_sweep": [
+      "older_batch_logit_offset_sweep": [
         -0.6,
         -0.5,
         -0.4,
@@ -66,45 +66,45 @@
   "true_relative_lift": 0.03,
   "true_relative_lift_applies_to": "users whose widget renders",
   "expected_ate_absolute": 0.0008163990795205046,
-  "expected_ate_absolute_rendered": 0.0009600096687542157,
+  "expected_ate_absolute_reached_scanner": 0.0009600096687542157,
   "expected_relative_lift_itt": 0.025512471235015655,
-  "expected_relative_lift_rendered": 0.03000000000000025,
+  "expected_relative_lift_reached_scanner": 0.03000000000000025,
   "realised": {
-    "n_users": 280000,
+    "n_products": 280000,
     "control_rate_expected": 0.03199999999999997,
     "sample_ate_absolute": 0.0008714285714285716,
     "assigned_share_treatment": 0.4994142857142857,
-    "affected_cell_share": 0.10035357142857143,
-    "render_rate": 0.8504071428571428,
-    "exposure_loss_rate_in_affected_treatment": 0.3551315457678407,
+    "older_batch_share": 0.10035357142857143,
+    "reach_rate": 0.8504071428571428,
+    "scan_loss_rate_in_older_batch_treatment": 0.3551315457678407,
     "calibrated_intercept": -3.491814430535615,
     "hash_salt": 4243187313361084272
   },
   "row_counts": {
-    "users": 280000,
+    "products": 280000,
     "assignments": 280000,
-    "exposures": 233889,
-    "checkout_attempts": 364031,
-    "orders": 8990,
-    "telemetry_health": 182,
+    "scans": 233889,
+    "packing_runs": 364031,
+    "finished_products": 8990,
+    "scan_log_health": 182,
     "truth": 280000
   },
   "files": {
-    "users": "users.parquet",
+    "products": "products.parquet",
     "assignments": "assignments.parquet",
-    "exposures": "exposures.parquet",
-    "checkout_attempts": "checkout_attempts.parquet",
-    "orders": "orders.parquet",
-    "telemetry_health": "telemetry_health.parquet",
+    "scans": "scans.parquet",
+    "packing_runs": "packing_runs.parquet",
+    "finished_products": "finished_products.parquet",
+    "scan_log_health": "scan_log_health.parquet",
     "truth": "truth.parquet"
   },
   "content_sha256": {
-    "users": "b1f70172fecca6b757beec12b1abf396c3e0dc5b155cdcad660b2b2923ead4e7",
+    "products": "b1f70172fecca6b757beec12b1abf396c3e0dc5b155cdcad660b2b2923ead4e7",
     "assignments": "4523cf7f73b80b1639ee60ee8215c9a1c3c0f5df2cb3d4484fef88008aee67f2",
-    "exposures": "79ab8a2119a83e3ba9c5972d6dc73d320cc93a1e49f08050c0904e88e1241700",
-    "checkout_attempts": "08b0391e230a360275624d7d2b7ce0172d7f3e76c3a0f3ae6f4fa515aeb98242",
-    "orders": "3eacd61bf885ddaa91a1adc7c0f0e1194159fbf1cb917f09c255f8b9c1c9b268",
-    "telemetry_health": "e32c981053ac41d691314c0c1491c6576a89a1bfdf1876246e7664d9b5c46364",
+    "scans": "79ab8a2119a83e3ba9c5972d6dc73d320cc93a1e49f08050c0904e88e1241700",
+    "packing_runs": "08b0391e230a360275624d7d2b7ce0172d7f3e76c3a0f3ae6f4fa515aeb98242",
+    "finished_products": "3eacd61bf885ddaa91a1adc7c0f0e1194159fbf1cb917f09c255f8b9c1c9b268",
+    "scan_log_health": "e32c981053ac41d691314c0c1491c6576a89a1bfdf1876246e7664d9b5c46364",
     "truth": "531509f1cea6fcaa891507439340439dda9698559daa8b712835dbd947259314"
   }
 }

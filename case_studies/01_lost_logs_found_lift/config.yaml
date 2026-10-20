@@ -1,0 +1,52 @@
+# Case 01: Lost Logs, Found Lift. Parameters of the simulated experiment.
+# Every value here is logged to the manifest when data is generated.
+# Seed selection rule (stated so it can be checked; tests/simulation/test_case_seed.py
+# re-applies it): the case seed is the first seed from 20260928 upwards whose single run
+# shows the case's story, namely the day-14 dashboard clears the ship rule, the
+# complete-data ITT interval lands in the continue zone (lower bound at or below +1.0%, upper
+# bound at or above 0) and the routing SRM check passes. The rule was written during the
+# generator rework, after 20260928 failed it under an intermediate version; under the final
+# generator 20260928, the first candidate, meets it. How often a random seed shows the story
+# is measured by `abf oc` (results/case01/oc_story.csv).
+seed: 20260928
+days: 14
+eligible_products_per_day: 20000
+allocation: {control: 0.5, treatment: 0.5}
+baseline_yield_rate: 0.032
+true_relative_lift: 0.03         # among products that reach the scanner; ITT truth is diluted
+legacy_route_probability: 0.15     # arm-independent share of eligible products on the legacy manual route
+older_batch_logit_offset: -0.30  # yield deficit of the older component batch (logit scale)
+outcome_window_days: 7
+decision_rule:
+  ship_if_lower_bound_above_relative: 0.01
+  # Guardrail non-inferiority margins (business inputs, like the ship threshold) on the
+  # new-station-minus-old-station difference: a guardrail passes when the upper 95% bound is at or
+  # below its margin, breaches when the lower 95% bound is above it, and is inconclusive
+  # otherwise. Packing-step errors and cycle time must pass for a ship; at no true effect the
+  # packing-step guardrail passes about 95% of the time at 140,000 products per arm. Returns are
+  # a breach-only guardrail: a breach stops the launch, and a pass is not required, because
+  # passing a +10% margin at no true effect happens only about 18% of the time on a complete
+  # 14-day cohort (about 4,500 finished products per arm at a 5% return rate) and 80% of the time would
+  # need about 33,000 finished products per arm. +10% is the harm tolerance: at the +1.0% ship floor, a
+  # return increase above +18.8% would cancel the gain in kept finished products. (During the review on
+  # 29 September the return margin was briefly raised to +25% to make a pass reachable; it was
+  # restored to +10% as breach-only. The committed run's return verdict is the same under
+  # every version: inconclusive, no breach.)
+  guardrails:
+    packing_step_error_max_increase_absolute: 0.003  # must pass
+    cycle_time_p95_max_increase_relative: 0.05          # must pass; product-clustered bootstrap
+    return_rate_max_increase_relative: 0.10          # breach-only
+incident:
+  supply_line: android
+  batch_below: "8.4"
+  scan_loss_probability: 0.35
+  affects_arm: treatment
+records_pipeline:
+  arrival_delay_hours: {min: 0, max: 36}
+operating_characteristics:
+  seed: 20261001                   # distinct from the case seed; replicates never reuse it
+  replicates: 5000                 # B per scenario (A to D, F) and per loss-sweep point
+  sweep_replicates: 1000           # B per yield-deficit sweep point (runtime budget)
+  scenario_lift: 0.03              # tau among products that reach the scanner for C, D, F and both sweeps
+  loss_probability_sweep: [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
+  older_batch_logit_offset_sweep: [-0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0.0]

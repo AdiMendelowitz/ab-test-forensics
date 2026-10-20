@@ -1,5 +1,5 @@
 # Case 02: The metric that told two stories. Parameters of the real-control, simulated-treatment
-# experiment (docs/design/case-02.md v1.5; decision record v2, sections 8 to 10).
+# experiment (design note and decision record kept outside the repository).
 # Every value here is logged to the manifest when data is generated.
 # Seed selection rule (spec section 6): the case seed is the first seed at or above
 # seed_search_start whose single run shows the story (naive and delta-method tests both reject
@@ -52,7 +52,7 @@ decision_rule:
 guardrail_simulation:                 # v1.0 mechanism, labelled simulated (spec section 6)
   per_impression_rate: 0.005
   low_quality_multiplier: 3.0
-  heterogeneity_shape: 2.0            # g_i ~ Gamma(shape, mean 1) per population user (Adi, 1 Oct 2026)
+  heterogeneity_shape: 2.0            # g_i ~ Gamma(shape, mean 1) per population user
   population_seed: 20261001           # keys g_i; fixed so the truths do not change with the run seed
 
 operating_characteristics:
@@ -115,4 +115,4 @@ parametric_generator:
 
 deferred:
   large_variant_feasibility_check: "2026-10-31"   # quoted so YAML and the JSON manifest agree on a string
-  real_guardrail_signal: open for Adi with the README (spec section 16, item 7; record section 10, 4 Oct 2026)
+  real_guardrail_signal: disclosed in the README

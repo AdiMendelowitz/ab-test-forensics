@@ -3,7 +3,7 @@
 Both functions take a frame at any grain (impressions, sessions, users), aggregate it to one
 row of column sums per unit, and treat the unit as the independent observation. The unit is
 whatever was randomised or, in the Case 02 harness, drawn: a user drawn twice is two units
-(docs/design/case-02.md, sections 3, 5 and 10).
+(Case 02 README, Units and estimand).
 
 A statistic is a function of column totals. It receives a DataFrame whose rows are sets of
 totals (one row per leave-one-out set, per bootstrap resample, or a single row for the full
