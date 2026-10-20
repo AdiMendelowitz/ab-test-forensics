@@ -4,7 +4,7 @@
 
 - Repository scaffold, package skeleton, `srm_check` with unit tests.
 - Case 01 generator `simulate_checkout_experiment` (six event tables, truth table, manifest with content checksums) and `abf simulate case01`.
-- Case 01 design specification (docs/design/case-01.md).
+- Case 01 design specification (kept outside the repository).
 - `difference_in_proportions`, `invariant_check`, `exposure_rate_by_segment`, `event_arrival_lag` with unit tests; `reporting.style`.
 - Case 01 notebook executed with three figures, README, decision memo and data contract.
 - Spec deviation recorded: the pre-period invariant is underpowered at the incident's magnitude; the case leads with composition invariants instead.
@@ -18,7 +18,7 @@
 - Manifest regenerated so its embedded config carries the +10% refund margin (data checksums unchanged); a unit test now fails when the committed manifest and `config.yaml` disagree.
 - `.gitattributes` normalises text files to LF so outputs regenerated on Windows do not show as whole-file diffs.
 - `oc_meta.json` records the Python version and machine for each unit and, separately, for the run that assembled the tables (a cache-only rerun on another machine previously overwrote the single `python` field); keys are sorted and the OC CSVs and meta are written with LF line endings on every platform.
-- Case 02 design specification (`docs/design/case-02.md`, v1.0) written and reviewed before any Case 02 code: three estimands, a delete-one-user jackknife shared with later cases, sample size set against the decision margin; root README roadmap updated.
+- Case 02 design specification (v1.0, kept outside the repository) written and reviewed before any Case 02 code: three estimands, a delete-one-user jackknife shared with later cases, sample size set against the decision margin; root README roadmap updated.
 - `requires-python` raised to 3.12 to match the documented support; root README CI versions corrected.
 
 ## 30 September 2026 (unreleased)
@@ -38,12 +38,12 @@
 
 ## 5 October 2026 (unreleased)
 
-- Case 02: LF pins in the manifest and OC writers (A11), case seed 20261002, committed run at 115,200 draws, manifest test over both cases (90a3c2c)
-- Case 02 notebook (A32): builder under notes/tools, abf run case02 through cmd_run, three tests, executed outputs and figures (191fa9e)
+- Case 02: LF pins in the manifest and OC writers, case seed 20261002, committed run at 115,200 draws, manifest test over both cases (90a3c2c)
+- Case 02 notebook: builder kept outside the repository, abf run case02 through cmd_run, three tests, executed outputs and figures (191fa9e)
 
 ## 6 October 2026 (unreleased)
 
-- README: Case 02 status after the notebook; ignore CLAUDE.md (session destination table) (2f131bf)
+- README: Case 02 status after the notebook; ignore a local configuration file (2f131bf)
 - Case 02 spec v1.6: section 14 ratio disclosure; section 16 item 7 closed, guardrail kept simulated and disclosed (8b99cd5)
 
 ## 7 October 2026 (unreleased)

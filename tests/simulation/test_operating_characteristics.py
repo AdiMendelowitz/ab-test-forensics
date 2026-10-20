@@ -17,7 +17,7 @@ import pandas as pd
 import pytest
 import yaml
 
-from abforensics.simulation.checkout_incident import simulate_population
+from abforensics.simulation.assembly_incident import simulate_population
 from abforensics.simulation.operating_characteristics import (
     ESTIMATORS,
     SCENARIOS,
@@ -35,35 +35,35 @@ from abforensics.simulation.operating_characteristics import (
 SMALL = {
     "seed": 1,
     "days": 2,
-    "eligible_users_per_day": 2_000,
-    "baseline_order_rate": 0.032,
+    "eligible_products_per_day": 2_000,
+    "baseline_yield_rate": 0.032,
     "true_relative_lift": 0.03,
     "outcome_window_days": 7,
-    "non_render_probability": 0.15,
+    "legacy_route_probability": 0.15,
     "decision_rule": {"ship_if_lower_bound_above_relative": 0.01},
-    "order_pipeline": {"arrival_delay_hours": {"min": 0, "max": 36}},
+    "records_pipeline": {"arrival_delay_hours": {"min": 0, "max": 36}},
     "incident": {
-        "platform": "android",
-        "app_version_below": "8.4",
-        "exposure_loss_probability": 0.35,
+        "supply_line": "android",
+        "batch_below": "8.4",
+        "scan_loss_probability": 0.35,
         "affects_arm": "treatment",
     },
 }
-FULL = {**SMALL, "days": 14, "eligible_users_per_day": 20_000}
+FULL = {**SMALL, "days": 14, "eligible_products_per_day": 20_000}
 
 
 def test_scenario_config_does_not_mutate_and_rejects_unknown_keys() -> None:
-    cfg = scenario_config(SMALL, lift=0.0, overrides={"incident.exposure_loss_probability": 0.1})
-    assert cfg["incident"]["exposure_loss_probability"] == 0.1
+    cfg = scenario_config(SMALL, lift=0.0, overrides={"incident.scan_loss_probability": 0.1})
+    assert cfg["incident"]["scan_loss_probability"] == 0.1
     assert cfg["true_relative_lift"] == 0.0
-    assert SMALL["incident"]["exposure_loss_probability"] == 0.35
+    assert SMALL["incident"]["scan_loss_probability"] == 0.35
     with pytest.raises(ValueError, match="cannot vary"):
-        scenario_config(SMALL, lift=0.03, overrides={"incident.exposure_loss": 0.9})
+        scenario_config(SMALL, lift=0.03, overrides={"incident.scan_loss": 0.9})
 
 
 def test_sweep_rejects_unknown_parameter() -> None:
     with pytest.raises(ValueError, match="cannot sweep"):
-        run_sweep(SMALL, "affected_cell_offset", [0.0], B=2, seed=0)
+        run_sweep(SMALL, "older_batch_offset", [0.0], B=2, seed=0)
 
 
 def test_scenarios_have_one_row_per_scenario_and_estimator() -> None:
@@ -99,7 +99,7 @@ def test_replicates_are_deterministic_and_independent_of_chunking() -> None:
 
 def test_common_random_numbers_across_scenarios() -> None:
     _, reps = run_scenarios(SMALL, B=8, seed=4)
-    itt = reps[reps["estimator"] == "itt_assigned"].set_index(["variant", "replicate"])
+    itt = reps[reps["estimator"] == "itt_routed"].set_index(["variant", "replicate"])
     # The incident never touches the ITT analysis, and A/B (C/D) share one population.
     pd.testing.assert_series_equal(
         itt.loc["A", "estimate"], itt.loc["B", "estimate"], check_names=False
@@ -111,10 +111,10 @@ def test_common_random_numbers_across_scenarios() -> None:
 
 
 def test_loss_sweep_on_one_population_matches_separate_runs() -> None:
-    swept = run_sweep(SMALL, "incident.exposure_loss_probability", [0.1, 0.5], B=3, seed=0)
+    swept = run_sweep(SMALL, "incident.scan_loss_probability", [0.1, 0.5], B=3, seed=0)
     assert swept["value"].tolist() == [0.1] * len(ESTIMATORS) + [0.5] * len(ESTIMATORS)
-    single = run_sweep(SMALL, "incident.exposure_loss_probability", [0.5], B=3, seed=0)
-    cols = ["estimator", "mean_estimate", "coverage", "exposure_srm_rate_0.001"]
+    single = run_sweep(SMALL, "incident.scan_loss_probability", [0.5], B=3, seed=0)
+    cols = ["estimator", "mean_estimate", "coverage", "scan_srm_rate_0.001"]
     pd.testing.assert_frame_equal(
         swept[swept["value"] == 0.5][cols].reset_index(drop=True), single[cols]
     )
@@ -140,7 +140,7 @@ def _reps(**cols: list) -> pd.DataFrame:
         "dilution": [1.0] * n,
         "n_analysed": [10] * n,
         "assignment_srm_p": [0.5] * n,
-        "exposure_srm_p": [0.5] * n,
+        "scan_srm_p": [0.5] * n,
     }
     base.update(cols)
     return pd.DataFrame(base)
@@ -176,20 +176,20 @@ def test_paired_contrast_se_uses_the_pairing() -> None:
 
 
 def _tiny_repo(root: Path, **oc_changes: object) -> None:
-    case = root / "case_studies" / "01_lift_we_could_not_trust"
+    case = root / "case_studies" / "01_lost_logs_found_lift"
     case.mkdir(parents=True, exist_ok=True)
     (root / "pyproject.toml").write_text("[project]\nname = 'x'\n", encoding="utf-8")
     cfg = {
         **SMALL,
         "days": 1,
-        "eligible_users_per_day": 1_500,
+        "eligible_products_per_day": 1_500,
         "operating_characteristics": {
             "seed": 5,
             "replicates": 3,
             "sweep_replicates": 2,
             "scenario_lift": 0.03,
             "loss_probability_sweep": [0.1, 0.4],
-            "affected_cell_logit_offset_sweep": [-0.3, 0.0],
+            "older_batch_logit_offset_sweep": [-0.3, 0.0],
             **oc_changes,
         },
     }
@@ -206,8 +206,7 @@ def test_abf_oc_writes_outputs_and_never_reuses_a_stale_cache(tmp_path, monkeypa
     for name in ("oc_scenarios", "oc_contrasts", "oc_story", "oc_loss_sweep", "oc_deficit_sweep"):
         assert (out / f"{name}.csv").exists(), name
     assert (
-        tmp_path
-        / "case_studies/01_lift_we_could_not_trust/figures/fig4_operating_characteristics.png"
+        tmp_path / "case_studies/01_lost_logs_found_lift/figures/fig4_operating_characteristics.png"
     ).exists()
     assert (out / "oc_story.csv").exists() and (out / "oc_meta.json").exists()
     first = pd.read_csv(out / "oc_scenarios.csv")
@@ -231,7 +230,7 @@ def test_abf_oc_writes_outputs_and_never_reuses_a_stale_cache(tmp_path, monkeypa
     _tiny_repo(tmp_path, scenario_lift=0.2)
     assert main(["oc", "case01", "--jobs", "1"]) == 0
     changed = pd.read_csv(out / "oc_scenarios.csv")
-    assert changed.loc[changed["scenario"] == "C", "tau_rendered"].iloc[0] == 0.2
+    assert changed.loc[changed["scenario"] == "C", "tau_reached_scanner"].iloc[0] == 0.2
     assert not first["mean_estimate"].equals(changed["mean_estimate"])
 
 
@@ -274,13 +273,11 @@ def test_an_unrelated_config_edit_reuses_the_cache(tmp_path, monkeypatch) -> Non
     parts = tmp_path / "results/case01/parts"
     before = {p.name: p.stat().st_mtime_ns for p in parts.glob("*.parquet")}
     cfg = yaml.safe_load(
-        (tmp_path / "case_studies/01_lift_we_could_not_trust/config.yaml").read_text()
+        (tmp_path / "case_studies/01_lost_logs_found_lift/config.yaml").read_text()
     )
-    cfg["decision_rule"]["guardrails"] = {"refund_rate_max_increase_relative": 0.5}
+    cfg["decision_rule"]["guardrails"] = {"return_rate_max_increase_relative": 0.5}
     cfg["outcome_window_days"] = 7.0  # same value, different YAML type
-    (tmp_path / "case_studies/01_lift_we_could_not_trust/config.yaml").write_text(
-        yaml.safe_dump(cfg)
-    )
+    (tmp_path / "case_studies/01_lost_logs_found_lift/config.yaml").write_text(yaml.safe_dump(cfg))
     assert main(["oc", "case01", "--jobs", "1"]) == 0
     after = {p.name: p.stat().st_mtime_ns for p in parts.glob("*.parquet")}
     assert after == before
@@ -317,9 +314,9 @@ def test_sufficient_statistics_match_explicit_masks() -> None:
         logged = pop.logged_under(v.loss_probability, v.affects_arm)
         for name, mask, outcome in (
             ("dashboard_day14", logged, y14),
-            ("exposed_complete", logged, y),
-            ("exposed_excluding_cell", pop.rendered & ~pop.in_affected_cell, y),
-            ("itt_assigned", np.ones(pop.n, dtype=bool), y),
+            ("scanned_complete", logged, y),
+            ("scanned_excluding_older_batch", pop.reached_scanner & ~pop.in_older_batch, y),
+            ("itt_routed", np.ones(pop.n, dtype=bool), y),
         ):
             t, c = mask & treat, mask & ~treat
             ref = difference_in_proportions(
@@ -350,8 +347,8 @@ def test_case_story_counts_the_joint_event() -> None:
     for i, (dash_low, (itt_low, itt_high), srm_p) in enumerate(cases):
         for name, lo, hi, est in (
             ("dashboard_day14", dash_low, dash_low + 0.08, 0.04 + i / 100),
-            ("exposed_complete", dash_low, dash_low + 0.08, 0.05 + i / 100),
-            ("itt_assigned", itt_low, itt_high, (itt_low + itt_high) / 2),
+            ("scanned_complete", dash_low, dash_low + 0.08, 0.05 + i / 100),
+            ("itt_routed", itt_low, itt_high, (itt_low + itt_high) / 2),
         ):
             rows.append(
                 {
@@ -389,32 +386,32 @@ def test_scenario_claims_hold_at_the_case_regime() -> None:
     t = table.set_index(["scenario", "estimator"])
     nominal_cov = math.sqrt(0.95 * 0.05 / b)
     nominal_rej = math.sqrt(0.05 * 0.95 / b)
-    for est in ("dashboard_day14", "exposed_complete", "itt_assigned"):
+    for est in ("dashboard_day14", "scanned_complete", "itt_routed"):
         a = t.loc[("A", est)]
         assert _within(a["coverage"], 0.95, nominal_cov), est
         assert _within(a["rejection_rate"], 0.05, nominal_rej), est
         assert _within(a["bias"], 0.0, a["bias_mc_se"]), est
     for s in ("B", "C", "D", "F"):
-        itt = t.loc[(s, "itt_assigned")]
+        itt = t.loc[(s, "itt_routed")]
         assert _within(itt["coverage"], 0.95, nominal_cov), s
         assert _within(itt["bias"], 0.0, itt["bias_mc_se"]), s
     for s in ("C", "D", "F"):
-        x = t.loc[(s, "exposed_excluding_cell")]
+        x = t.loc[(s, "scanned_excluding_older_batch")]
         assert _within(x["bias"], 0.0, x["bias_mc_se"]), s
         assert _within(x["coverage"], 0.95, nominal_cov), s
     d = t.loc[("D", "dashboard_day14")]
     assert d["bias"] > 10 * d["bias_mc_se"]
     assert d["coverage"] < 0.95 - 3 * nominal_cov
-    assert d["exposure_srm_rate_0.001_ci_low"] > 0.99
+    assert d["scan_srm_rate_0.001_ci_low"] > 0.99
     assert t.loc[("B", "dashboard_day14"), "rejection_rate"] > 0.05 + 3 * nominal_rej
     # Symmetric loss: no exposure SRM beyond nominal and no bias against its own target.
     f = t.loc[("F", "dashboard_day14")]
     assert _within(f["bias"], 0.0, f["bias_mc_se"])
-    assert f["exposure_srm_rate_0.05"] < 0.05 + 4 * nominal_rej
+    assert f["scan_srm_rate_0.05"] < 0.05 + 4 * nominal_rej
     # Triggered analysis rejects zero more often than ITT when logging is intact: the paired
     # difference matches the analytic power gain (26.1% at 3.0% on ~119,000 per arm against
     # 22.9% at 2.55% on 140,000 per arm), within four paired Monte Carlo SEs.
     c = paired_contrasts(
-        reps, [("c", ("C", "exposed_complete"), ("C", "itt_assigned"), "rejected")]
+        reps, [("c", ("C", "scanned_complete"), ("C", "itt_routed"), "rejected")]
     ).iloc[0]
     assert _within(c["difference"], 0.261 - 0.229, c["paired_mc_se"])

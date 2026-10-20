@@ -1,7 +1,7 @@
 {
   "abforensics_version": "0.1.0",
   "case": "case01",
-  "code_sha256": "eccfcf86373e8989afb0b2e707dfc6dd2e9d69822599c8aef94b536b877aa029",
+  "code_sha256": "c7576c389d1e0047d4ed19dbb2f2cf6eb6feb7877d7ce89871a216747764f8e8",
   "library_versions": {
     "numpy": "2.5.3",
     "pandas": "3.0.6",
@@ -9,83 +9,83 @@
   },
   "replicates_deficit_sweep": 1000,
   "replicates_scenarios_and_loss_sweep": 5000,
-  "scenario_lift_rendered": 0.03,
+  "scenario_lift_reached_scanner": 0.03,
   "seed": 20261001,
-  "summary_machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
-  "summary_python": "3.14.4",
-  "total_unit_seconds": 712.4,
+  "summary_machine": "Windows-11-10.0.26300-SP0",
+  "summary_python": "3.14.0",
+  "total_unit_seconds": 872.8,
   "units": {
     "offset_-0.1": {
-      "file": "offset_-0.1_90755c8782e5e188.parquet",
+      "file": "offset_-0.1_6555faa9d852c714.parquet",
       "jobs": 8,
-      "key": "90755c8782e5e18842036ef07f350412dec35646d2ca7a26785415fe84d45660",
-      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
-      "python": "3.14.4",
+      "key": "6555faa9d852c7144b314aac3d17c325bd4fc4c496b65965fcacd5d923eff0b0",
+      "machine": "Windows-11-10.0.26300-SP0",
+      "python": "3.14.0",
       "replicates": 1000,
-      "seconds": 33.6
+      "seconds": 49.6
     },
     "offset_-0.2": {
-      "file": "offset_-0.2_d5407114a8c5df8c.parquet",
+      "file": "offset_-0.2_f87de956d32a3c25.parquet",
       "jobs": 8,
-      "key": "d5407114a8c5df8c06fbc393d89bfe89a9dd9b36eeefd15e18b7fed05afac96e",
-      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
-      "python": "3.14.4",
+      "key": "f87de956d32a3c25d6bf5288f6faa882d3b20c547755b5a7dba586f83917d33e",
+      "machine": "Windows-11-10.0.26300-SP0",
+      "python": "3.14.0",
       "replicates": 1000,
-      "seconds": 38.1
+      "seconds": 49.5
     },
     "offset_-0.4": {
-      "file": "offset_-0.4_0c8f5f075887d071.parquet",
+      "file": "offset_-0.4_5dd4477b8ef41776.parquet",
       "jobs": 8,
-      "key": "0c8f5f075887d0715be46c8af1075d43f43679985409dbee6eb5fa31b8f0b7b6",
-      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
-      "python": "3.14.4",
+      "key": "5dd4477b8ef41776cd4dcc1aa57214947f07854fd02bef1dc491960257106335",
+      "machine": "Windows-11-10.0.26300-SP0",
+      "python": "3.14.0",
       "replicates": 1000,
-      "seconds": 35.7
+      "seconds": 47.0
     },
     "offset_-0.5": {
-      "file": "offset_-0.5_9697175b00c14113.parquet",
+      "file": "offset_-0.5_1afc334486c7bea4.parquet",
       "jobs": 8,
-      "key": "9697175b00c141132e42da02e4fe36fb406bb46aefc0bcf953f748054134b894",
-      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
-      "python": "3.14.4",
+      "key": "1afc334486c7bea46bef43b715de6a72096d85a2334066940344876a0a005d49",
+      "machine": "Windows-11-10.0.26300-SP0",
+      "python": "3.14.0",
       "replicates": 1000,
-      "seconds": 37.5
+      "seconds": 48.8
     },
     "offset_-0.6": {
-      "file": "offset_-0.6_299346b6a58d2dc8.parquet",
+      "file": "offset_-0.6_c97a18581e0654ba.parquet",
       "jobs": 8,
-      "key": "299346b6a58d2dc85cf50f1942c21407c48e0fc4b7d7d7c0ccda9f9b97e54056",
-      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
-      "python": "3.14.4",
+      "key": "c97a18581e0654ba1389ebc8cccb1020f17cb64da1f9f673de879cf657d74a42",
+      "machine": "Windows-11-10.0.26300-SP0",
+      "python": "3.14.0",
       "replicates": 1000,
-      "seconds": 44.1
+      "seconds": 49.9
     },
     "offset_0.0": {
-      "file": "offset_0.0_238c6120bd3e0298.parquet",
+      "file": "offset_0.0_84042f4bec82cd89.parquet",
       "jobs": 8,
-      "key": "238c6120bd3e0298f40dc906f61c3695bcbc87415bf064b03a3afab7deb5cc43",
-      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
-      "python": "3.14.4",
+      "key": "84042f4bec82cd8983ba71de1488fd665aa41fe303f4911eb245f864ebf47cd1",
+      "machine": "Windows-11-10.0.26300-SP0",
+      "python": "3.14.0",
       "replicates": 1000,
-      "seconds": 34.9
+      "seconds": 48.7
     },
     "scenarios_effect": {
-      "file": "scenarios_effect_a76ff6b6d6d91a5a.parquet",
+      "file": "scenarios_effect_e72bcd2c28e4b0a6.parquet",
       "jobs": 8,
-      "key": "a76ff6b6d6d91a5a3091946a0023ae0c17ba3133624638256e5e4dc7051a195b",
-      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
-      "python": "3.14.4",
+      "key": "e72bcd2c28e4b0a64413aa82cea92698d79dcb917063ee2c2e0850820b02d8cc",
+      "machine": "Windows-11-10.0.26300-SP0",
+      "python": "3.14.0",
       "replicates": 5000,
-      "seconds": 255.8
+      "seconds": 280.7
     },
     "scenarios_null": {
-      "file": "scenarios_null_05d94509f35dbfc2.parquet",
+      "file": "scenarios_null_4d134a1314e9b129.parquet",
       "jobs": 8,
-      "key": "05d94509f35dbfc2ad025e971f52f4585d3c85b216444af3e7a99460afe7ffbe",
-      "machine": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
-      "python": "3.14.4",
+      "key": "4d134a1314e9b129197e634e78f1740d725b738fffb1b0dd199c3658fb60533a",
+      "machine": "Windows-11-10.0.26300-SP0",
+      "python": "3.14.0",
       "replicates": 5000,
-      "seconds": 232.7
+      "seconds": 298.6
     }
   }
 }

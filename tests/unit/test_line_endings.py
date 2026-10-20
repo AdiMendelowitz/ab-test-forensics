@@ -10,10 +10,10 @@ import pytest
 import yaml
 
 from abforensics import cli
-from abforensics.simulation import checkout_incident as ci
+from abforensics.simulation import assembly_incident as ci
 from abforensics.simulation import oc_case02 as oc
 from abforensics.simulation import ranking_incident as ri
-from tests.unit.test_checkout_incident import SMALL_CONFIG
+from tests.unit.test_assembly_incident import SMALL_CONFIG
 
 ROOT = Path(__file__).resolve().parents[2]
 GEN_CONFIG = {
@@ -77,8 +77,8 @@ def test_oc_tables_are_written_with_lf(base, tmp_path):
 
 
 def test_case01_manifest_is_written_with_lf(tmp_path):
-    config = {**SMALL_CONFIG, "days": 2, "eligible_users_per_day": 500}
-    data = ci.simulate_checkout_experiment(config)
+    config = {**SMALL_CONFIG, "days": 2, "eligible_products_per_day": 500}
+    data = ci.simulate_assembly_experiment(config)
     manifest_path = tmp_path / "manifests" / "case01.json"
     ci.write_case_data(data, tmp_path / "generated", manifest_path)
     assert not _has_crlf(manifest_path), "Case 01 manifest carries CRLF: pass newline='\\n'"

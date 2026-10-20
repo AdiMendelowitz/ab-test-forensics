@@ -13,7 +13,7 @@ from pathlib import Path
 import yaml
 
 COMMANDS = ("simulate", "run", "oc")
-CASES = {"case01": "01_lift_we_could_not_trust", "case02": "02_metric_that_told_two_stories"}
+CASES = {"case01": "01_lost_logs_found_lift", "case02": "02_metric_that_told_two_stories"}
 
 
 def repo_root() -> Path:
@@ -37,13 +37,13 @@ def cmd_simulate(root: Path, case: str, seed: int | None, *, synthetic: bool = F
         return 2
     if case == "case02":
         return _cmd_simulate_case02(root, case, seed, synthetic=synthetic)
-    from abforensics.simulation.checkout_incident import (
-        simulate_checkout_experiment,
+    from abforensics.simulation.assembly_incident import (
+        simulate_assembly_experiment,
         write_case_data,
     )
 
     config = load_config(root, case)
-    data = simulate_checkout_experiment(config, seed=seed)
+    data = simulate_assembly_experiment(config, seed=seed)
     manifest = write_case_data(
         data,
         generated_dir=root / "data" / "generated" / case,
@@ -95,20 +95,20 @@ def normalise_line_endings(path: Path) -> None:
 OC_CONTRASTS = (
     (
         "C: exposed minus ITT, rejects zero",
-        ("C", "exposed_complete"),
-        ("C", "itt_assigned"),
+        ("C", "scanned_complete"),
+        ("C", "itt_routed"),
         "rejected",
     ),
     (
         "C: exposed minus ITT, ship rule",
-        ("C", "exposed_complete"),
-        ("C", "itt_assigned"),
+        ("C", "scanned_complete"),
+        ("C", "itt_routed"),
         "rule_ship",
     ),
     (
         "C: exposed (bound rescaled to the ITT lift) minus ITT, ship rule",
-        ("C", "exposed_complete"),
-        ("C", "itt_assigned"),
+        ("C", "scanned_complete"),
+        ("C", "itt_routed"),
         "rule_ship_itt_scale",
     ),
     (
@@ -132,16 +132,16 @@ OC_CONTRASTS = (
     (
         "D: dashboard day 14 minus exposed complete, ship rule",
         ("D", "dashboard_day14"),
-        ("D", "exposed_complete"),
+        ("D", "scanned_complete"),
         "rule_ship",
     ),
     (
         "D: segment-excluded minus ITT, rejects zero",
-        ("D", "exposed_excluding_cell"),
-        ("D", "itt_assigned"),
+        ("D", "scanned_excluding_older_batch"),
+        ("D", "itt_routed"),
         "rejected",
     ),
-    ("F minus C: exposed bias", ("F", "exposed_complete"), ("C", "exposed_complete"), "err"),
+    ("F minus C: exposed bias", ("F", "scanned_complete"), ("C", "scanned_complete"), "err"),
 )
 
 
@@ -156,10 +156,10 @@ def _code_fingerprint() -> str:
     from abforensics import results
     from abforensics.diagnostics import srm
     from abforensics.inference import proportions
-    from abforensics.simulation import checkout_incident, operating_characteristics
+    from abforensics.simulation import assembly_incident, operating_characteristics
 
     h = hashlib.sha256()
-    for module in (checkout_incident, operating_characteristics, proportions, srm, results):
+    for module in (assembly_incident, operating_characteristics, proportions, srm, results):
         h.update(inspect.getsource(module).replace("\r\n", "\n").encode("utf-8"))
     return h.hexdigest()
 
@@ -230,7 +230,7 @@ def cmd_oc(
     import pandas as pd
 
     from abforensics import __version__
-    from abforensics.simulation.checkout_incident import validate_config
+    from abforensics.simulation.assembly_incident import validate_config
     from abforensics.simulation.operating_characteristics import (
         SCENARIOS,
         Variant,
@@ -260,9 +260,9 @@ def cmd_oc(
     parts.mkdir(parents=True, exist_ok=True)
     fingerprint = _code_fingerprint()
     versions = _library_versions()
-    loss = float(config["incident"]["exposure_loss_probability"])
+    loss = float(config["incident"]["scan_loss_probability"])
     affects = str(config["incident"]["affects_arm"])
-    base_offset = float(validate_config(config).affected_cell_logit_offset)
+    base_offset = float(validate_config(config).older_batch_logit_offset)
 
     # Units: (name, config for the population, variants, B).
     units: list[tuple[str, dict, list, int]] = []
@@ -273,11 +273,11 @@ def cmd_oc(
         else:
             variants = variants + [loss_variant(v, affects) for v in loss_values]
             units.append(("scenarios_effect", scenario_config(config, lift=lift), variants, b))
-    offset_values = [float(v) for v in oc["affected_cell_logit_offset_sweep"]]
+    offset_values = [float(v) for v in oc["older_batch_logit_offset_sweep"]]
     for v in offset_values:
         if v == base_offset and b_sweep <= b and affects == SCENARIOS["D"].affects_arm:
             continue  # identical to scenario D's first b_sweep replicates; reused below
-        cfg = scenario_config(config, lift=lift, overrides={"affected_cell_logit_offset": v})
+        cfg = scenario_config(config, lift=lift, overrides={"older_batch_logit_offset": v})
         units.append((f"offset_{v!r}", cfg, [Variant("D", loss, affects)], b_sweep))
 
     started = time.perf_counter()
@@ -359,7 +359,7 @@ def cmd_oc(
             eff = frames["scenarios_effect"]
             reps = eff[(eff["variant"] == "D") & (eff["replicate"] < b_sweep)]
         s = summarise(reps).drop(columns="variant")
-        s.insert(0, "parameter", "affected_cell_logit_offset")
+        s.insert(0, "parameter", "older_batch_logit_offset")
         s.insert(1, "value", v)
         deficit.append(s)
     deficit_table = pd.concat(deficit, ignore_index=True)
@@ -382,7 +382,7 @@ def cmd_oc(
         "seed": seed,
         "replicates_scenarios_and_loss_sweep": b,
         "replicates_deficit_sweep": b_sweep,
-        "scenario_lift_rendered": lift,
+        "scenario_lift_reached_scanner": lift,
         "abforensics_version": __version__,
         "library_versions": versions,
         # The environment that assembled these tables; each unit records where it was computed.
@@ -533,9 +533,9 @@ def plot_operating_characteristics(loss, path: Path, b: int, lift: float) -> Non
     apply_style()
     fig, axes = plt.subplots(1, 3, figsize=(13, 3.9))
     shown = {
-        "dashboard_day14": (PALETTE["treatment"], "Dashboard (exposed, day 14)"),
-        "exposed_excluding_cell": (PALETTE["series3"], "Exposed, affected segment excluded"),
-        "itt_assigned": (PALETTE["control"], "ITT (assigned)"),
+        "dashboard_day14": (PALETTE["treatment"], "Dashboard (logged scans, day 14)"),
+        "scanned_excluding_older_batch": (PALETTE["series3"], "Logged scans, older batch excluded"),
+        "itt_routed": (PALETTE["control"], "ITT (routed)"),
     }
     for est, (colour, label) in shown.items():
         g = loss[loss["estimator"] == est]
@@ -548,7 +548,7 @@ def plot_operating_characteristics(loss, path: Path, b: int, lift: float) -> Non
     dash = loss[loss["estimator"] == "dashboard_day14"]
     x = dash["value"].to_numpy()
     for alpha, style in ((0.001, "-"), (0.05, "--")):
-        col = f"exposure_srm_rate_{alpha:g}"
+        col = f"scan_srm_rate_{alpha:g}"
         y = dash[col].to_numpy() * 100
         lo = dash[f"{col}_ci_low"].to_numpy() * 100
         hi = dash[f"{col}_ci_high"].to_numpy() * 100
@@ -558,16 +558,16 @@ def plot_operating_characteristics(loss, path: Path, b: int, lift: float) -> Non
     axes[1].axhline(95, color=PALETTE["threshold"], lw=1)
     axes[0].set_title("Bias of the relative lift (points)")
     axes[1].set_title("Coverage of the 95% interval (%)")
-    axes[2].set_title("Exposure SRM detected (%)")
+    axes[2].set_title("Scan-level SRM detected (%)")
     for ax in axes:
-        ax.set_xlabel("Render-event loss probability in the affected cell")
+        ax.set_xlabel("Scan loss probability in the older component batch")
     axes[0].legend(loc="upper left")
     axes[2].legend(loc="lower right")
     axes[2].set_ylim(-3, 103)
     fig.suptitle(
-        f"Case 01 operating characteristics: true lift {lift:.1%} among rendered users, "
-        f"B = {b:,} per point; bands are 95% Monte Carlo intervals, each estimator scored "
-        "against its own target",
+        f"Case 01 operating characteristics: true lift {lift:.1%} among products that "
+        f"reach the scanner, B = {b:,} per point; bands are 95% Monte Carlo intervals, "
+        "each estimator scored against its own target",
         x=0.01,
         ha="left",
         fontsize=10,

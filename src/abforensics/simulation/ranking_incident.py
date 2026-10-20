@@ -53,7 +53,7 @@ import pandas as pd
 from scipy import stats
 
 from abforensics import __version__
-from abforensics.simulation.checkout_incident import content_sha256
+from abforensics.simulation.assembly_incident import content_sha256
 
 # Stream uses. Each is a separate keyed stream; adding a use never changes another's values.
 USE = {
