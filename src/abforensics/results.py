@@ -1,6 +1,6 @@
 """Result objects returned by every public function in abforensics.
 
-Design rules (see docs/design/case-01.md, section 11):
+Design rules:
 
 * every result names the estimand it targets, or states that it is a diagnostic with none;
 * every result carries its assumptions and its warnings, so that nothing is hidden in a

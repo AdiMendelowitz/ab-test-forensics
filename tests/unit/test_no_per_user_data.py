@@ -1,4 +1,4 @@
-"""Tracked-data licence guard: docs/design/case-02.md, section 6."""
+"""Tracked-data licence guard: Case 02 README, Data provenance."""
 
 from __future__ import annotations
 

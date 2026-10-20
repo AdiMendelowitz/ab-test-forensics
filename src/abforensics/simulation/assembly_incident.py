@@ -1,7 +1,7 @@
 """Case 01 data-generating process: a checkout experiment with an exposure-logging incident.
 
 Everything here is simulated. The generator produces the six long-format tables described
-in docs/design/case-01.md, section 6, a ``truth`` table of per-user potential outcomes
+in the Case 01 README (Data provenance), a ``truth`` table of per-user potential outcomes
 written for audit (no analysis reads it; the operating-characteristic runner computes the
 same quantities in memory from ``simulate_population``), and a manifest recording the seed,
 every parameter and the realised row counts.
@@ -9,7 +9,7 @@ every parameter and the realised row counts.
 Three layers sit between assignment and the analysed population:
 
 * Rendering. Every eligible user requests the checkout page. For a fixed share of them
-  (``non_render_probability``), independently of arm and covariates, the page falls back to
+  (``legacy_route_probability``), independently of arm and covariates, the page falls back to
   the server-rendered legacy checkout and neither widget renders. They can still load the
   payment step and order through the fallback, but they cannot be affected by the widget,
   so their treatment potential outcome equals their control one. The exposed population is
@@ -24,7 +24,7 @@ Three layers sit between assignment and the analysed population:
   wherever the render event is missing, and for fallback users.
 
 Server-side renders are known to the platform only as aggregate counts per platform, app
-version and day (the ``telemetry_health`` table); no user-level server-side render log
+version and day (the ``scan_log_health`` table); no user-level server-side render log
 exists, so an analyst cannot re-trigger on server renders.
 
 Random streams. ``simulate_population`` spawns one independent child stream per block
@@ -33,8 +33,8 @@ timing), and every per-user quantity is a deterministic function of a fixed numb
 uniforms per user (inverse-CDF sampling). For a fixed number of users, changing a parameter
 therefore changes only the quantities that depend on it, user by user; every other draw is
 identical, so two configs run with the same seed share common random numbers. Changing
-``days`` or ``eligible_users_per_day`` changes the number of users and redraws every block
-except the assignment hash. The event-level details added by ``simulate_checkout_experiment``
+``days`` or ``eligible_products_per_day`` changes the number of users and redraws every block
+except the assignment hash. The event-level details added by ``simulate_assembly_experiment``
 (payment-step loads, latencies, amounts, refunds) come from the parent generator and do not
 share common random numbers across configs; no operating characteristic depends on them.
 
@@ -42,7 +42,7 @@ Two paths share one core:
 
 * ``simulate_population`` returns NumPy arrays and is fast enough to call thousands of
   times for operating characteristics;
-* ``simulate_checkout_experiment`` wraps it to produce the event tables and the manifest.
+* ``simulate_assembly_experiment`` wraps it to produce the event tables and the manifest.
 """
 
 from __future__ import annotations
@@ -64,10 +64,10 @@ from scipy.special import expit, logit
 
 from abforensics import __version__
 
-PLATFORMS = ("ios", "android", "web")
-PLATFORM_SHARES = (0.40, 0.40, 0.20)
-APP_VERSIONS = ("8.1", "8.2", "8.3", "8.4", "8.5", "8.6")
-APP_VERSION_SHARES = (0.04, 0.08, 0.13, 0.20, 0.25, 0.30)
+SUPPLY_LINES = ("ios", "android", "web")
+SUPPLY_LINE_SHARES = (0.40, 0.40, 0.20)
+BATCHES = ("8.1", "8.2", "8.3", "8.4", "8.5", "8.6")
+BATCH_SHARES = (0.04, 0.08, 0.13, 0.20, 0.25, 0.30)
 COUNTRIES = ("DE", "DK", "NL", "GB", "ES")
 COUNTRY_SHARES = (0.30, 0.10, 0.20, 0.25, 0.15)
 WEEKDAY_WEIGHTS = (1.00, 1.05, 1.05, 1.10, 1.15, 0.85, 0.80)  # Monday first
@@ -75,29 +75,29 @@ WEEKDAY_WEIGHTS = (1.00, 1.05, 1.05, 1.10, 1.15, 0.85, 0.80)  # Monday first
 # Conversion model on the logit scale. Platform and app-version effects are fixed so that
 # the incident's affected cell (Android, old versions) is the lowest-converting one, which
 # is what makes the exposure-conditioned estimate biased upwards. The affected-cell offset
-# is a default: config key ``affected_cell_logit_offset`` overrides it for the sweep.
-PLATFORM_LOGIT = {"ios": 0.30, "android": -0.30, "web": 0.0}
-OLD_ANDROID_LOGIT = -0.30
-PRE_ORDERS_LOGIT_PER_LOG1P = 0.25
+# is a default: config key ``older_batch_logit_offset`` overrides it for the sweep.
+SUPPLY_LINE_LOGIT = {"ios": 0.30, "android": -0.30, "web": 0.0}
+OLDER_BATCH_LOGIT = -0.30
+PRE_FINISHED_LOGIT_PER_LOG1P = 0.25
 # Pre-period orders: zero-inflated negative binomial. The structural-zero share below comes
 # on top of the negative binomial's own zeros, P(NB = 0) = (0.8 / 2.8) ** 0.8 = 0.37, so the
 # share of users with no pre-period order is 0.81 outside the affected cell and 0.87 inside.
 ZERO_INFLATION = 0.70
 NB_MEAN, NB_DISPERSION = 2.0, 0.8
 # Users who have not updated the app are less engaged: more zeros, fewer orders when non-zero.
-OLD_ANDROID_ZERO_INFLATION = 0.78
-OLD_ANDROID_NB_MEAN = 1.6
+OLDER_BATCH_ZERO_INFLATION = 0.78
+OLDER_BATCH_NB_MEAN = 1.6
 
-NON_RENDER_PROBABILITY = 0.15  # default share of eligible users whose widget never renders
+LEGACY_ROUTE_PROBABILITY = 0.15  # default share of eligible users whose widget never renders
 AFFECTS_ARM_VALUES = ("treatment", "control", "both")
 
-PAYMENT_STEP_ERROR_RATE = 0.04  # per load of the payment step, identical by arm
+PACKING_STEP_ERROR_RATE = 0.04  # per load of the payment step, identical by arm
 EXTRA_LOADS_POISSON = 0.30  # payment-step loads per user: 1 + Poisson(0.30)
-LATENCY_LOG_MEAN, LATENCY_LOG_SD = np.log(1200.0), 0.35  # ms
+CYCLE_TIME_LOG_MEAN, CYCLE_TIME_LOG_SD = np.log(1200.0), 0.35  # ms
 AMOUNT_LOG_MEAN, AMOUNT_LOG_SD = np.log(48.0), 0.60  # currency units
-ORDER_DELAY_MEAN_HOURS = 20.0  # eligibility to order: exponential, truncated to the window
-REFUND_PROBABILITY = 0.05  # per order, identical by arm
-REFUND_WINDOW_DAYS = 14  # refunds land uniformly within this many days of the order
+RECORDS_DELAY_MEAN_HOURS = 20.0  # eligibility to order: exponential, truncated to the window
+RETURN_PROBABILITY = 0.05  # per order, identical by arm
+RETURN_WINDOW_DAYS = 14  # refunds land uniformly within this many days of the order
 
 HASH_SALT = 0x9E3779B97F4A7C15  # default for ``hash_assign`` when called directly
 
@@ -107,26 +107,24 @@ CONFIG_KEYS = frozenset(
     {
         "seed",
         "days",
-        "eligible_users_per_day",
+        "eligible_products_per_day",
         "allocation",
-        "baseline_order_rate",
+        "baseline_yield_rate",
         "true_relative_lift",
-        "non_render_probability",
-        "affected_cell_logit_offset",
+        "legacy_route_probability",
+        "older_batch_logit_offset",
         "outcome_window_days",
         "decision_rule",
         "incident",
-        "order_pipeline",
+        "records_pipeline",
         "operating_characteristics",
     }
 )
-INCIDENT_KEYS = frozenset(
-    {"platform", "app_version_below", "exposure_loss_probability", "affects_arm"}
-)
+INCIDENT_KEYS = frozenset({"supply_line", "batch_below", "scan_loss_probability", "affects_arm"})
 
-_PLATFORM_LOGIT_BY_INDEX = np.asarray([PLATFORM_LOGIT[p] for p in PLATFORMS])
-_APP_VERSION_LABELS = np.asarray((*APP_VERSIONS, "web"))
-_WEB_INDEX = PLATFORMS.index("web")
+_SUPPLY_LINE_LOGIT_BY_INDEX = np.asarray([SUPPLY_LINE_LOGIT[p] for p in SUPPLY_LINES])
+_BATCH_LABELS = np.asarray((*BATCHES, "web"))
+_WEB_INDEX = SUPPLY_LINES.index("web")
 _VERSION_PATTERN = re.compile(r"^\d+(\.\d+)*$")
 _STREAMS = ("covariates", "arrival", "salt", "render", "outcome", "loss", "timing")
 
@@ -135,20 +133,20 @@ def version_tuple(v: str) -> tuple[int, ...]:
     return tuple(int(p) for p in str(v).split("."))
 
 
-def version_below(versions: np.ndarray, threshold: str) -> np.ndarray:
+def batch_below_check(versions: np.ndarray, threshold: str) -> np.ndarray:
     """Elementwise ``version < threshold`` for dotted version strings."""
     thr = version_tuple(threshold)
     return np.asarray([version_tuple(v) < thr if v != "web" else False for v in versions])
 
 
-def hash_assign(user_ids: np.ndarray, salt: int = HASH_SALT) -> np.ndarray:
+def hash_assign(product_ids: np.ndarray, salt: int = HASH_SALT) -> np.ndarray:
     """Deterministic 50/50 assignment from a 64-bit integer mix of the user id and a salt.
 
     Models hash-based bucketing: for a given salt the same user always lands in the same
     arm, and the split is balanced in expectation without any coin being flipped at request
     time. A new salt is a new experiment's bucketing. Returns 1 for treatment, 0 for control.
     """
-    x = (user_ids.astype(np.uint64) + np.uint64(salt)) & np.uint64(0xFFFFFFFFFFFFFFFF)
+    x = (product_ids.astype(np.uint64) + np.uint64(salt)) & np.uint64(0xFFFFFFFFFFFFFFFF)
     x ^= x >> np.uint64(30)
     x = (x * np.uint64(0xBF58476D1CE4E5B9)) & np.uint64(0xFFFFFFFFFFFFFFFF)
     x ^= x >> np.uint64(27)
@@ -173,10 +171,10 @@ class DGPParameters:
     per_day: int
     baseline: float
     lift: float
-    non_render_probability: float
-    affected_cell_logit_offset: float
+    legacy_route_probability: float
+    older_batch_logit_offset: float
     loss_probability: float
-    affected_platform: str
+    affected_supply_line: str
     version_threshold: str
     affects_arm: str
     outcome_window_hours: float
@@ -212,8 +210,8 @@ def _as_probability(name: str, value: Any, *, allow_one: bool = True) -> float:
 def validate_config(config: Mapping[str, Any]) -> DGPParameters:
     """Parse and validate the keys the generator reads; raise ``ValueError`` naming the key.
 
-    Unknown top-level or incident keys are rejected. Defaults: ``non_render_probability``
-    0.15, ``affected_cell_logit_offset`` -0.30.
+    Unknown top-level or incident keys are rejected. Defaults: ``legacy_route_probability``
+    0.15, ``older_batch_logit_offset`` -0.30.
     """
     unknown = set(config) - CONFIG_KEYS
     if unknown:
@@ -228,22 +226,22 @@ def validate_config(config: Mapping[str, Any]) -> DGPParameters:
     unknown = set(incident) - INCIDENT_KEYS
     if unknown:
         raise ValueError(f"unknown incident keys {sorted(unknown)}; known {sorted(INCIDENT_KEYS)}")
-    baseline = _as_number("baseline_order_rate", config["baseline_order_rate"])
+    baseline = _as_number("baseline_yield_rate", config["baseline_yield_rate"])
     if not 0.0 < baseline < 1.0:
-        raise ValueError(f"baseline_order_rate must be in (0, 1); got {baseline!r}")
+        raise ValueError(f"baseline_yield_rate must be in (0, 1); got {baseline!r}")
     lift = _as_number("true_relative_lift", config["true_relative_lift"])
     if lift <= -1.0:
         raise ValueError(f"true_relative_lift must be above -1; got {lift!r}")
-    platform = incident["platform"]
-    if platform not in PLATFORMS or platform == "web":
+    supply_line = incident["supply_line"]
+    if supply_line not in SUPPLY_LINES or supply_line == "web":
         raise ValueError(
-            f"incident.platform must be one of {PLATFORMS[:_WEB_INDEX]} (web has no app "
-            f"version); got {platform!r}"
+            f"incident.supply_line must be one of {SUPPLY_LINES[:_WEB_INDEX]} (web has no app "
+            f"version); got {supply_line!r}"
         )
-    threshold = incident["app_version_below"]
+    threshold = incident["batch_below"]
     if not isinstance(threshold, str) or not _VERSION_PATTERN.match(threshold):
         raise ValueError(
-            "incident.app_version_below must be a quoted dotted version string such as "
+            "incident.batch_below must be a quoted dotted version string such as "
             f'"8.4" (an unquoted 8.10 would parse as the number 8.1); got {threshold!r}'
         )
     affects = str(incident["affects_arm"])
@@ -251,29 +249,29 @@ def validate_config(config: Mapping[str, Any]) -> DGPParameters:
     window = _as_number("outcome_window_days", config["outcome_window_days"])
     if window <= 0:
         raise ValueError(f"outcome_window_days must be positive; got {window!r}")
-    delay = config["order_pipeline"]["arrival_delay_hours"]
-    d_min = _as_number("order_pipeline.arrival_delay_hours.min", delay["min"])
-    d_max = _as_number("order_pipeline.arrival_delay_hours.max", delay["max"])
+    delay = config["records_pipeline"]["arrival_delay_hours"]
+    d_min = _as_number("records_pipeline.arrival_delay_hours.min", delay["min"])
+    d_max = _as_number("records_pipeline.arrival_delay_hours.max", delay["max"])
     if not 0.0 <= d_min <= d_max:
-        raise ValueError(f"order_pipeline.arrival_delay_hours needs 0 <= min <= max; got {delay}")
+        raise ValueError(f"records_pipeline.arrival_delay_hours needs 0 <= min <= max; got {delay}")
     return DGPParameters(
         days=_as_count("days", config["days"]),
-        per_day=_as_count("eligible_users_per_day", config["eligible_users_per_day"]),
+        per_day=_as_count("eligible_products_per_day", config["eligible_products_per_day"]),
         baseline=baseline,
         lift=lift,
-        non_render_probability=_as_probability(
-            "non_render_probability",
-            config.get("non_render_probability", NON_RENDER_PROBABILITY),
+        legacy_route_probability=_as_probability(
+            "legacy_route_probability",
+            config.get("legacy_route_probability", LEGACY_ROUTE_PROBABILITY),
             allow_one=False,
         ),
-        affected_cell_logit_offset=_as_number(
-            "affected_cell_logit_offset",
-            config.get("affected_cell_logit_offset", OLD_ANDROID_LOGIT),
+        older_batch_logit_offset=_as_number(
+            "older_batch_logit_offset",
+            config.get("older_batch_logit_offset", OLDER_BATCH_LOGIT),
         ),
         loss_probability=_as_probability(
-            "incident.exposure_loss_probability", incident["exposure_loss_probability"]
+            "incident.scan_loss_probability", incident["scan_loss_probability"]
         ),
-        affected_platform=platform,
+        affected_supply_line=supply_line,
         version_threshold=threshold,
         affects_arm=affects,
         outcome_window_hours=window * 24.0,
@@ -286,33 +284,33 @@ def validate_config(config: Mapping[str, Any]) -> DGPParameters:
 class Population:
     """Arrays for one simulated experiment. All arrays are aligned on user index."""
 
-    user_id: np.ndarray
-    platform_idx: np.ndarray  # index into PLATFORMS
-    version_idx: np.ndarray  # index into APP_VERSIONS, len(APP_VERSIONS) for web
+    product_id: np.ndarray
+    supply_line_idx: np.ndarray  # index into SUPPLY_LINES
+    version_idx: np.ndarray  # index into BATCHES, len(BATCHES) for web
     country_idx: np.ndarray  # index into COUNTRIES
-    pre_period_orders_28d: np.ndarray
+    pre_period_finished_28d: np.ndarray
     assigned_at: np.ndarray  # hours since experiment start
     arm: np.ndarray  # 1 treatment, 0 control
     p_control: np.ndarray
     p_treatment: np.ndarray  # equals p_control for users served the fallback
     y0: np.ndarray
     y1: np.ndarray
-    rendered: np.ndarray  # bool: the widget rendered (arm-independent)
+    reached_scanner: np.ndarray  # bool: the widget rendered (arm-independent)
     loss_uniform: np.ndarray  # uniform draw deciding render-event loss, per user
-    exposure_logged: np.ndarray  # bool: rendered and the render event survived the incident
-    in_affected_cell: np.ndarray  # bool: android below threshold (both arms)
-    order_delay_hours: np.ndarray  # eligibility to order, if the user orders
+    scan_logged: np.ndarray  # bool: rendered and the render event survived the incident
+    in_older_batch: np.ndarray  # bool: android below threshold (both arms)
+    records_delay_hours: np.ndarray  # eligibility to order, if the user orders
     arrival_delay_hours: np.ndarray  # order to receipt by the batch pipeline
     realised_control_rate: float
     extras: Mapping[str, Any] = field(default_factory=dict)
 
     @property
-    def platform(self) -> np.ndarray:
-        return np.asarray(PLATFORMS)[self.platform_idx]
+    def supply_line(self) -> np.ndarray:
+        return np.asarray(SUPPLY_LINES)[self.supply_line_idx]
 
     @property
-    def app_version(self) -> np.ndarray:
-        return _APP_VERSION_LABELS[self.version_idx]
+    def batch(self) -> np.ndarray:
+        return _BATCH_LABELS[self.version_idx]
 
     @property
     def country(self) -> np.ndarray:
@@ -324,11 +322,11 @@ class Population:
 
     @property
     def n(self) -> int:
-        return int(self.user_id.size)
+        return int(self.product_id.size)
 
     def received_by(self, hours: float) -> np.ndarray:
         """Converters whose order the pipeline has delivered by ``hours`` after the start."""
-        received = self.assigned_at + self.order_delay_hours + self.arrival_delay_hours
+        received = self.assigned_at + self.records_delay_hours + self.arrival_delay_hours
         return (self.y == 1) & (received <= hours)
 
     def logged_under(self, loss_probability: float, affects_arm: str) -> np.ndarray:
@@ -339,8 +337,8 @@ class Population:
         """
         p = _as_probability("loss_probability", loss_probability)
         in_hit_arm = np.isin(self.arm, affected_arms(affects_arm))
-        lost = self.rendered & self.in_affected_cell & in_hit_arm & (self.loss_uniform < p)
-        return self.rendered & ~lost
+        lost = self.reached_scanner & self.in_older_batch & in_hit_arm & (self.loss_uniform < p)
+        return self.reached_scanner & ~lost
 
     def expected_ate_absolute(self, mask: np.ndarray | None = None) -> float:
         """Mean of p_treatment - p_control over the population (or a boolean subset)."""
@@ -388,9 +386,9 @@ def _zinb_cdf(zero_inflation: float, mean: float, dispersion: float) -> np.ndarr
     return cdf
 
 
-_PRE_ORDERS_CDF = {
+_PRE_FINISHED_CDF = {
     False: _zinb_cdf(ZERO_INFLATION, NB_MEAN, NB_DISPERSION),
-    True: _zinb_cdf(OLD_ANDROID_ZERO_INFLATION, OLD_ANDROID_NB_MEAN, NB_DISPERSION),
+    True: _zinb_cdf(OLDER_BATCH_ZERO_INFLATION, OLDER_BATCH_NB_MEAN, NB_DISPERSION),
 }
 
 
@@ -412,19 +410,21 @@ def simulate_population(config: Mapping[str, Any], rng: np.random.Generator) -> 
         for name, child in zip(_STREAMS, root.spawn(len(_STREAMS)), strict=True)
     }
 
-    user_id = np.arange(1, n + 1, dtype=np.int64)
+    product_id = np.arange(1, n + 1, dtype=np.int64)
     cov = streams["covariates"].random((4, n))
-    platform_idx = _categorical(cov[0], PLATFORM_SHARES)
-    version_idx = _categorical(cov[1], APP_VERSION_SHARES)
-    version_idx = np.where(platform_idx == _WEB_INDEX, len(APP_VERSIONS), version_idx)
+    supply_line_idx = _categorical(cov[0], SUPPLY_LINE_SHARES)
+    version_idx = _categorical(cov[1], BATCH_SHARES)
+    version_idx = np.where(supply_line_idx == _WEB_INDEX, len(BATCHES), version_idx)
     country_idx = _categorical(cov[2], COUNTRY_SHARES)
 
-    below = np.append(version_below(np.asarray(APP_VERSIONS), prm.version_threshold), False)
-    old_android = (platform_idx == PLATFORMS.index(prm.affected_platform)) & below[version_idx]
-    pre_orders = np.where(
-        old_android,
-        np.searchsorted(_PRE_ORDERS_CDF[True], cov[3], side="right"),
-        np.searchsorted(_PRE_ORDERS_CDF[False], cov[3], side="right"),
+    below = np.append(batch_below_check(np.asarray(BATCHES), prm.version_threshold), False)
+    older_batch = (supply_line_idx == SUPPLY_LINES.index(prm.affected_supply_line)) & below[
+        version_idx
+    ]
+    pre_finished = np.where(
+        older_batch,
+        np.searchsorted(_PRE_FINISHED_CDF[True], cov[3], side="right"),
+        np.searchsorted(_PRE_FINISHED_CDF[False], cov[3], side="right"),
     ).astype(np.int64)
 
     # Arrival time: day drawn with weekday weights, hour uniform within the day.
@@ -434,19 +434,19 @@ def simulate_population(config: Mapping[str, Any], rng: np.random.Generator) -> 
     assigned_at = day * 24.0 + arrival[1] * 24.0
 
     salt = int(streams["salt"].integers(0, 2**63 - 1))
-    arm = hash_assign(user_id, salt)
+    arm = hash_assign(product_id, salt)
 
     # The linear predictor takes few distinct values (platform x cell x pre-period orders),
     # so the intercept is calibrated on a lookup table of those values weighted by their
     # counts rather than on n users.
-    stride = int(pre_orders.max()) + 1
-    key = (platform_idx * 2 + old_android.astype(np.int64)) * stride + pre_orders
-    counts = np.bincount(key, minlength=len(PLATFORMS) * 2 * stride).astype(float)
+    stride = int(pre_finished.max()) + 1
+    key = (supply_line_idx * 2 + older_batch.astype(np.int64)) * stride + pre_finished
+    counts = np.bincount(key, minlength=len(SUPPLY_LINES) * 2 * stride).astype(float)
     table_key = np.arange(counts.size)
     linear_table = (
-        _PLATFORM_LOGIT_BY_INDEX[table_key // stride // 2]
-        + prm.affected_cell_logit_offset * ((table_key // stride) % 2)
-        + PRE_ORDERS_LOGIT_PER_LOG1P * np.log1p(table_key % stride)
+        _SUPPLY_LINE_LOGIT_BY_INDEX[table_key // stride // 2]
+        + prm.older_batch_logit_offset * ((table_key // stride) % 2)
+        + PRE_FINISHED_LOGIT_PER_LOG1P * np.log1p(table_key % stride)
     )
     used = counts > 0
     intercept = _calibrate_intercept(linear_table[used], counts[used], prm.baseline)
@@ -458,8 +458,8 @@ def simulate_population(config: Mapping[str, Any], rng: np.random.Generator) -> 
             "would differ from the configured one"
         )
 
-    rendered = streams["render"].random(n) >= prm.non_render_probability
-    p_treatment = np.where(rendered, p_control * (1.0 + prm.lift), p_control)
+    reached_scanner = streams["render"].random(n) >= prm.legacy_route_probability
+    p_treatment = np.where(reached_scanner, p_control * (1.0 + prm.lift), p_control)
 
     # Common random numbers: the same uniform decides both potential outcomes, so a
     # positive lift can only turn a 0 into a 1, never the reverse.
@@ -469,75 +469,75 @@ def simulate_population(config: Mapping[str, Any], rng: np.random.Generator) -> 
 
     loss_uniform = streams["loss"].random(n)
     in_hit_arm = np.isin(arm, affected_arms(prm.affects_arm))
-    lost = rendered & old_android & in_hit_arm & (loss_uniform < prm.loss_probability)
-    exposure_logged = rendered & ~lost
+    lost = reached_scanner & older_batch & in_hit_arm & (loss_uniform < prm.loss_probability)
+    scan_logged = reached_scanner & ~lost
 
     # Order timing, drawn for every user (used only where the user orders): time from
     # eligibility to order, exponential truncated to the outcome window, and the batch
     # pipeline's delivery delay, uniform, identical in both arms.
     timing = streams["timing"].random((2, n))
-    order_delay = np.minimum(
-        -ORDER_DELAY_MEAN_HOURS * np.log1p(-timing[0]), prm.outcome_window_hours - 1e-6
+    records_delay = np.minimum(
+        -RECORDS_DELAY_MEAN_HOURS * np.log1p(-timing[0]), prm.outcome_window_hours - 1e-6
     )
     arrival_delay = prm.arrival_delay_min_hours + timing[1] * (
         prm.arrival_delay_max_hours - prm.arrival_delay_min_hours
     )
 
     return Population(
-        user_id=user_id,
-        platform_idx=platform_idx,
+        product_id=product_id,
+        supply_line_idx=supply_line_idx,
         version_idx=version_idx,
         country_idx=country_idx,
-        pre_period_orders_28d=pre_orders.astype(np.int32),
+        pre_period_finished_28d=pre_finished.astype(np.int32),
         assigned_at=assigned_at,
         arm=arm,
         p_control=p_control,
         p_treatment=p_treatment,
         y0=y0,
         y1=y1,
-        rendered=rendered,
+        reached_scanner=reached_scanner,
         loss_uniform=loss_uniform,
-        exposure_logged=exposure_logged,
-        in_affected_cell=old_android,
-        order_delay_hours=order_delay,
+        scan_logged=scan_logged,
+        in_older_batch=older_batch,
+        records_delay_hours=records_delay,
         arrival_delay_hours=arrival_delay,
         realised_control_rate=float(p_control.mean()),
         extras={
             "intercept": float(intercept),
             "logit_baseline": float(logit(prm.baseline)),
             "hash_salt": salt,
-            "non_render_probability": prm.non_render_probability,
-            "affected_cell_logit_offset": prm.affected_cell_logit_offset,
+            "legacy_route_probability": prm.legacy_route_probability,
+            "older_batch_logit_offset": prm.older_batch_logit_offset,
         },
     )
 
 
 @dataclass(frozen=True)
-class CheckoutExperimentData:
-    users: pd.DataFrame
+class AssemblyExperimentData:
+    products: pd.DataFrame
     assignments: pd.DataFrame
-    exposures: pd.DataFrame
-    checkout_attempts: pd.DataFrame
-    orders: pd.DataFrame
-    telemetry_health: pd.DataFrame
+    scans: pd.DataFrame
+    packing_runs: pd.DataFrame
+    finished_products: pd.DataFrame
+    scan_log_health: pd.DataFrame
     truth: pd.DataFrame
     manifest: dict[str, Any]
 
     def tables(self) -> dict[str, pd.DataFrame]:
         return {
-            "users": self.users,
+            "products": self.products,
             "assignments": self.assignments,
-            "exposures": self.exposures,
-            "checkout_attempts": self.checkout_attempts,
-            "orders": self.orders,
-            "telemetry_health": self.telemetry_health,
+            "scans": self.scans,
+            "packing_runs": self.packing_runs,
+            "finished_products": self.finished_products,
+            "scan_log_health": self.scan_log_health,
             "truth": self.truth,
         }
 
 
-def simulate_checkout_experiment(
+def simulate_assembly_experiment(
     config: Mapping[str, Any], seed: int | None = None
-) -> CheckoutExperimentData:
+) -> AssemblyExperimentData:
     """Generate the Case 01 event tables from ``config`` (the case's config.yaml).
 
     The experiment clock starts at ``2026-03-02T00:00:00`` (a Monday) so that weekday
@@ -551,74 +551,74 @@ def simulate_checkout_experiment(
     hours = pd.to_timedelta(pop.assigned_at, unit="h")
     assigned_ts = t0 + hours
     arm_label = np.where(pop.arm == 1, "treatment", "control")
-    platform, app_version = pop.platform, pop.app_version
+    supply_line, batch = pop.supply_line, pop.batch
 
-    users = pd.DataFrame(
+    products = pd.DataFrame(
         {
-            "user_id": pop.user_id,
-            "platform": platform,
-            "app_version": app_version,
+            "product_id": pop.product_id,
+            "supply_line": supply_line,
+            "batch": batch,
             "country": pop.country,
-            "pre_period_orders_28d": pop.pre_period_orders_28d,
+            "pre_period_finished_28d": pop.pre_period_finished_28d,
         }
     )
     assignments = pd.DataFrame(
-        {"user_id": pop.user_id, "arm": arm_label, "assigned_at": assigned_ts}
+        {"product_id": pop.product_id, "arm": arm_label, "assigned_at": assigned_ts}
     )
 
-    exposed = pop.exposure_logged
-    exposures = pd.DataFrame(
+    exposed = pop.scan_logged
+    scans = pd.DataFrame(
         {
-            "user_id": pop.user_id[exposed],
-            "exposed_at": assigned_ts[exposed]
+            "product_id": pop.product_id[exposed],
+            "scanned_at": assigned_ts[exposed]
             + pd.to_timedelta(rng.random(exposed.sum()) * 5, "s"),
-            "widget_version": np.where(pop.arm[exposed] == 1, "v2", "v1"),
+            "station_version": np.where(pop.arm[exposed] == 1, "v2", "v1"),
             "event_id": np.arange(1, exposed.sum() + 1, dtype=np.int64),
         }
     )
 
     # Payment-step loads: one or more per eligible user (every eligible user reaches the
     # checkout page), through the widget where it rendered and through the legacy fallback
-    # where it did not. ``payment_step_error`` marks a load on which the payment step raised
+    # where it did not. ``packing_step_error`` marks a load on which the payment step raised
     # a client error; a load is not a payment, so most loads end without an order. Latency
     # comes from the widget's timing event, so it exists only where the render event was
     # logged.
     n_loads = 1 + rng.poisson(EXTRA_LOADS_POISSON, size=n)
-    load_user = np.repeat(pop.user_id, n_loads)
+    load_product = np.repeat(pop.product_id, n_loads)
     load_idx = np.repeat(np.arange(n), n_loads)
     total_loads = int(n_loads.sum())
     load_offset_min = rng.random(total_loads) * 30.0
-    latency = rng.lognormal(LATENCY_LOG_MEAN, LATENCY_LOG_SD, size=total_loads)
-    latency = np.where(pop.exposure_logged[load_idx], latency, np.nan)
-    checkout_attempts = pd.DataFrame(
+    latency = rng.lognormal(CYCLE_TIME_LOG_MEAN, CYCLE_TIME_LOG_SD, size=total_loads)
+    latency = np.where(pop.scan_logged[load_idx], latency, np.nan)
+    packing_runs = pd.DataFrame(
         {
-            "user_id": load_user,
+            "product_id": load_product,
             "attempted_at": assigned_ts[load_idx] + pd.to_timedelta(load_offset_min, "m"),
-            "payment_step_error": rng.random(total_loads) < PAYMENT_STEP_ERROR_RATE,
-            "latency_ms": np.round(latency, 1),
+            "packing_step_error": rng.random(total_loads) < PACKING_STEP_ERROR_RATE,
+            "cycle_time_ms": np.round(latency, 1),
         }
     )
 
     # Orders: converters place one order within the outcome window; the batch pipeline
     # delivers it 0 to 36 hours later, identically in both arms (timing drawn in
     # ``simulate_population``). A fixed share of orders is refunded within 14 days,
-    # identically in both arms; refunded_at is NaT otherwise.
+    # identically in both arms; returned_at is NaT otherwise.
     y = pop.y.astype(bool)
-    n_orders = int(y.sum())
-    ordered_at = assigned_ts[y] + pd.to_timedelta(pop.order_delay_hours[y], "h")
-    received_at = ordered_at + pd.to_timedelta(pop.arrival_delay_hours[y], "h")
-    amount = np.round(rng.lognormal(AMOUNT_LOG_MEAN, AMOUNT_LOG_SD, size=n_orders), 2)
-    refunded = rng.random(n_orders) < REFUND_PROBABILITY
-    refund_lag_h = rng.random(n_orders) * REFUND_WINDOW_DAYS * 24.0
-    refunded_at = (ordered_at + pd.to_timedelta(refund_lag_h, "h")).where(refunded)
-    orders = pd.DataFrame(
+    n_finished = int(y.sum())
+    finished_at = assigned_ts[y] + pd.to_timedelta(pop.records_delay_hours[y], "h")
+    received_at = finished_at + pd.to_timedelta(pop.arrival_delay_hours[y], "h")
+    amount = np.round(rng.lognormal(AMOUNT_LOG_MEAN, AMOUNT_LOG_SD, size=n_finished), 2)
+    refunded = rng.random(n_finished) < RETURN_PROBABILITY
+    return_lag_h = rng.random(n_finished) * RETURN_WINDOW_DAYS * 24.0
+    returned_at = (finished_at + pd.to_timedelta(return_lag_h, "h")).where(refunded)
+    finished_products = pd.DataFrame(
         {
-            "user_id": pop.user_id[y],
-            "order_id": np.arange(1, n_orders + 1, dtype=np.int64),
-            "ordered_at": ordered_at,
+            "product_id": pop.product_id[y],
+            "finished_product_id": np.arange(1, n_finished + 1, dtype=np.int64),
+            "finished_at": finished_at,
             "received_at": received_at,
             "amount": amount,
-            "refunded_at": refunded_at,
+            "returned_at": returned_at,
         }
     )
 
@@ -626,32 +626,32 @@ def simulate_checkout_experiment(
     # publish it by comparing server-side widget renders with analytics render events.
     # Event loss rate = 1 - logged render events / rendered widgets.
     day = (pop.assigned_at // 24).astype(int)
-    r = pop.rendered
+    r = pop.reached_scanner
     health = (
         pd.DataFrame(
             {
-                "platform": platform[r],
-                "app_version": app_version[r],
+                "supply_line": supply_line[r],
+                "batch": batch[r],
                 "day": t0.normalize() + pd.to_timedelta(day[r], "D"),
-                "logged": pop.exposure_logged[r].astype(int),
+                "logged": pop.scan_logged[r].astype(int),
             }
         )
-        .groupby(["platform", "app_version", "day"], as_index=False)
-        .agg(users=("logged", "size"), logged=("logged", "sum"))
+        .groupby(["supply_line", "batch", "day"], as_index=False)
+        .agg(products=("logged", "size"), logged=("logged", "sum"))
     )
-    health["event_loss_rate"] = 1.0 - health["logged"] / health["users"]
-    telemetry_health = health[["platform", "app_version", "day", "users", "event_loss_rate"]]
+    health["event_loss_rate"] = 1.0 - health["logged"] / health["products"]
+    scan_log_health = health[["supply_line", "batch", "day", "products", "event_loss_rate"]]
 
     truth = pd.DataFrame(
         {
-            "user_id": pop.user_id,
+            "product_id": pop.product_id,
             "p_control": pop.p_control,
             "p_treatment": pop.p_treatment,
             "y0": pop.y0,
             "y1": pop.y1,
-            "rendered": pop.rendered,
-            "exposure_logged": pop.exposure_logged,
-            "in_affected_cell": pop.in_affected_cell,
+            "reached_scanner": pop.reached_scanner,
+            "scan_logged": pop.scan_logged,
+            "in_older_batch": pop.in_older_batch,
         }
     )
 
@@ -663,39 +663,46 @@ def simulate_checkout_experiment(
         "true_relative_lift": float(config["true_relative_lift"]),
         "true_relative_lift_applies_to": "users whose widget renders",
         "expected_ate_absolute": pop.expected_ate_absolute(),
-        "expected_ate_absolute_rendered": pop.expected_ate_absolute(pop.rendered),
+        "expected_ate_absolute_reached_scanner": pop.expected_ate_absolute(pop.reached_scanner),
         "expected_relative_lift_itt": pop.expected_relative_lift(),
-        "expected_relative_lift_rendered": pop.expected_relative_lift(pop.rendered),
+        "expected_relative_lift_reached_scanner": pop.expected_relative_lift(pop.reached_scanner),
         "realised": {
-            "n_users": n,
+            "n_products": n,
             "control_rate_expected": pop.realised_control_rate,
             "sample_ate_absolute": float(pop.y1.mean() - pop.y0.mean()),
             "assigned_share_treatment": float(pop.arm.mean()),
-            "affected_cell_share": float(pop.in_affected_cell.mean()),
-            "render_rate": float(pop.rendered.mean()),
-            "exposure_loss_rate_in_affected_treatment": _loss_rate(pop),
+            "older_batch_share": float(pop.in_older_batch.mean()),
+            "reach_rate": float(pop.reached_scanner.mean()),
+            "scan_loss_rate_in_older_batch_treatment": _loss_rate(pop),
             "calibrated_intercept": pop.extras["intercept"],
             "hash_salt": pop.extras["hash_salt"],
         },
         "row_counts": {
-            "users": int(len(users)),
+            "products": int(len(products)),
             "assignments": int(len(assignments)),
-            "exposures": int(len(exposures)),
-            "checkout_attempts": int(len(checkout_attempts)),
-            "orders": int(len(orders)),
-            "telemetry_health": int(len(telemetry_health)),
+            "scans": int(len(scans)),
+            "packing_runs": int(len(packing_runs)),
+            "finished_products": int(len(finished_products)),
+            "scan_log_health": int(len(scan_log_health)),
             "truth": int(len(truth)),
         },
     }
-    return CheckoutExperimentData(
-        users, assignments, exposures, checkout_attempts, orders, telemetry_health, truth, manifest
+    return AssemblyExperimentData(
+        products,
+        assignments,
+        scans,
+        packing_runs,
+        finished_products,
+        scan_log_health,
+        truth,
+        manifest,
     )
 
 
 def _loss_rate(pop: Population) -> float:
     """Share of rendered, affected-cell treatment users whose render event was lost."""
-    mask = pop.in_affected_cell & (pop.arm == 1) & pop.rendered
-    return float(1.0 - pop.exposure_logged[mask].mean()) if mask.any() else 0.0
+    mask = pop.in_older_batch & (pop.arm == 1) & pop.reached_scanner
+    return float(1.0 - pop.scan_logged[mask].mean()) if mask.any() else 0.0
 
 
 def _jsonable(obj: Any) -> Any:
@@ -720,7 +727,7 @@ def content_sha256(frame: pd.DataFrame) -> str:
 
 
 def write_case_data(
-    data: CheckoutExperimentData, generated_dir: Path, manifest_path: Path
+    data: AssemblyExperimentData, generated_dir: Path, manifest_path: Path
 ) -> dict[str, Any]:
     """Write the tables as Parquet and the manifest as JSON with per-table content checksums."""
     generated_dir.mkdir(parents=True, exist_ok=True)

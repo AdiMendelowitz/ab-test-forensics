@@ -15,28 +15,29 @@ import pytest
 import yaml
 
 from abforensics import difference_in_proportions, srm_check
-from abforensics.simulation.checkout_incident import simulate_checkout_experiment
+from abforensics.simulation.assembly_incident import simulate_assembly_experiment
 
-CONFIG = Path(__file__).resolve().parents[2] / "case_studies/01_lift_we_could_not_trust/config.yaml"
+CONFIG = Path(__file__).resolve().parents[2] / "case_studies/01_lost_logs_found_lift/config.yaml"
 FIRST_CANDIDATE = 20260928
 
 
 def shows_the_case_story(config: dict, seed: int) -> bool:
-    data = simulate_checkout_experiment(config, seed=seed)
-    a, e = data.assignments, data.exposures
+    data = simulate_assembly_experiment(config, seed=seed)
+    a, e = data.assignments, data.scans
     t0 = a["assigned_at"].min().floor("D")
     window = pd.Timedelta(days=config["outcome_window_days"])
-    delay = pd.Timedelta(hours=config["order_pipeline"]["arrival_delay_hours"]["max"])
+    delay = pd.Timedelta(hours=config["records_pipeline"]["arrival_delay_hours"]["max"])
     dashboard_time = t0 + pd.Timedelta(days=config["days"])
     analysis_time = dashboard_time + window + delay
     margin = config["decision_rule"]["ship_if_lower_bound_above_relative"]
-    o = data.orders.merge(a[["user_id", "assigned_at"]], on="user_id")
-    o = o[o["ordered_at"] < o["assigned_at"] + window]
+    o = data.finished_products.merge(a[["product_id", "assigned_at"]], on="product_id")
+    o = o[o["finished_at"] < o["assigned_at"] + window]
 
     def relative_interval(pop: pd.DataFrame, clock: pd.Timestamp) -> tuple[float, float]:
-        converters = set(o.loc[o["received_at"] <= clock, "user_id"])
+        converters = set(o.loc[o["received_at"] <= clock, "product_id"])
         counts = {
-            arm: (int(g["user_id"].isin(converters).sum()), len(g)) for arm, g in pop.groupby("arm")
+            arm: (int(g["product_id"].isin(converters).sum()), len(g))
+            for arm, g in pop.groupby("arm")
         }
         res = difference_in_proportions(
             *counts["treatment"],
@@ -47,7 +48,7 @@ def shows_the_case_story(config: dict, seed: int) -> bool:
         )
         return res.relative_confidence_interval
 
-    dash_low, _ = relative_interval(a[a["user_id"].isin(e["user_id"])], dashboard_time)
+    dash_low, _ = relative_interval(a[a["product_id"].isin(e["product_id"])], dashboard_time)
     itt_low, itt_high = relative_interval(a, analysis_time)
     srm = srm_check(a["arm"].value_counts().to_dict(), config["allocation"], level="assignment")
     return dash_low > margin and itt_low <= margin and itt_high >= 0 and not srm.flag_srm
