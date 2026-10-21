@@ -52,7 +52,7 @@ Source: the operating-characteristics section of the [Case 01 investigation](cas
 Case 01 is told as an assembly line: products, two stations and a faulty scanner. Scans are lost for one component batch on the new-station side, and the dashboard analyses products with a logged scan. The sample ratio mismatch (SRM) check passes on routing and fails on scans; the intention-to-treat (ITT) estimate stays valid while the triggered estimate does not. Operating characteristics at B = 5,000 per scenario.
 
 <p align="center">
-  <img src="docs/assets/case01-mechanism.svg" width="760" alt="Case 01 mechanism: random routing feeds both the intention-to-treat analysis of all routed products, which stays valid, and a population of logged scans from which new-station scans for one component batch are missing, so scan-level SRM fails and the triggered estimate is invalid.">
+  <img src="case_studies/01_lost_logs_found_lift/figures/case01-mechanism.svg" width="760" alt="Case 01 mechanism: random routing feeds both the intention-to-treat analysis of all routed products, which stays valid, and a population of logged scans from which new-station scans for one component batch are missing, so scan-level SRM fails and the triggered estimate is invalid.">
 </p>
 <p align="center"><sub>Mechanism illustration, not a results plot: missing scan records change which products appear in the dashboard comparison, not which were routed.</sub></p>
 
@@ -135,8 +135,6 @@ src/abforensics/    diagnostics, inference, metrics, simulation, reporting, resu
 tests/unit/         fast, CI
 tests/simulation/   slow, run before a case is declared done
 case_studies/       one folder per case
-docs/methodology/   short method notes (SRM so far)
-docs/templates/     case README, decision memo, data contract, review checklist
 data/manifests/     seed, true effect, parameters and checksums per generated dataset
 ```
 

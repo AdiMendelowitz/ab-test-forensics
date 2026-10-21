@@ -33,5 +33,5 @@ Thumbs.db
 
 # Claude session configuration (destination table for session skills)
 CLAUDE.md
-# Design specifications: internal, kept on disk
-docs/design/
+# Internal documents (design specifications, method notes, templates): kept on disk, untracked
+docs/
