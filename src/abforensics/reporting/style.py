@@ -35,7 +35,8 @@ def apply_style() -> None:
             "axes.labelcolor": PALETTE["ink2"],
             "axes.titlecolor": PALETTE["ink"],
             "axes.titlesize": 12,
-            "axes.titleweight": "semibold",
+            # DejaVu Sans ships no semibold face; matplotlib fell back to 700 with a warning.
+            "axes.titleweight": "bold",
             "axes.titlelocation": "left",
             "axes.spines.top": False,
             "axes.spines.right": False,

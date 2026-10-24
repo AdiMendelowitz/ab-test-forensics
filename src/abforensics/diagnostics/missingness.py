@@ -29,9 +29,11 @@ def event_arrival_lag(
 
     Returns one row per arm with the event count, mean, median, p90 and maximum lag in
     hours, and the share of events whose ``received_time_col`` is later than
-    ``analysis_time`` (unavailable to an analysis run then). A two-sample
-    Kolmogorov-Smirnov test compares the lag distributions of the two arms; a small
-    p-value marks the lag as differential.
+    ``analysis_time`` (unavailable to an analysis run then). An event with a missing
+    receipt time is counted as unavailable and reported in a warning; an event with a
+    missing event time is reported in a warning and excluded from the lag summaries. A
+    two-sample Kolmogorov-Smirnov test compares the lag distributions of the two arms; a
+    small p-value marks the lag as differential.
     """
     if not 0.0 < alpha < 1.0:
         raise ValueError(f"alpha must be in (0, 1); got {alpha}")
@@ -45,10 +47,22 @@ def event_arrival_lag(
     warnings: list[str] = []
     if dropped:
         warnings.append(f"{dropped} events belong to users not in assignments and were excluded.")
+    missing_received = int(joined[received_time_col].isna().sum())
+    missing_event = int(joined[event_time_col].isna().sum())
+    if missing_received:
+        warnings.append(
+            f"{missing_received} events have no receipt time; they are counted as unavailable "
+            "at the analysis time and excluded from the lag summaries."
+        )
+    if missing_event:
+        warnings.append(
+            f"{missing_event} events have no event time; they are excluded from the lag summaries."
+        )
     lag_h = (joined[received_time_col] - joined[event_time_col]).dt.total_seconds() / 3600.0
     if (lag_h < 0).any():
         warnings.append(f"{int((lag_h < 0).sum())} events were received before they happened.")
-    joined = joined.assign(lag_h=lag_h, late=joined[received_time_col] > analysis_time)
+    late = (joined[received_time_col] > analysis_time) | joined[received_time_col].isna()
+    joined = joined.assign(lag_h=lag_h, late=late)
 
     table = (
         joined.groupby(arm_col)
@@ -64,8 +78,8 @@ def event_arrival_lag(
     )
     arms = table[arm_col].tolist()
     if len(arms) == 2:
-        a = joined.loc[joined[arm_col] == arms[0], "lag_h"].to_numpy()
-        b = joined.loc[joined[arm_col] == arms[1], "lag_h"].to_numpy()
+        a = joined.loc[joined[arm_col] == arms[0], "lag_h"].dropna().to_numpy()
+        b = joined.loc[joined[arm_col] == arms[1], "lag_h"].dropna().to_numpy()
         ks_stat, ks_p = stats.ks_2samp(a, b)
     else:
         ks_stat, ks_p = float("nan"), float("nan")

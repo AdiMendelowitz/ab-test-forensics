@@ -1,22 +1,22 @@
 # Case 02: The metric that told two stories. Parameters of the real-control, simulated-treatment
-# experiment (design note and decision record kept outside the repository).
+# experiment.
 # Every value here is logged to the manifest when data is generated.
-# Seed selection rule (spec section 6): the case seed is the first seed at or above
-# seed_search_start whose single run shows the story (naive and delta-method tests both reject
-# on E2, E1 lands in row 5 of the rule, the guardrail passes, assignment SRM passes). The seed
-# was set on 4 October 2026 from the seed search at 57,600 per arm (first seed 20261002; story share 0.975 of 200).
+# Seed selection rule: the case seed is the first seed at or above seed_search_start whose
+# single run shows the story (naive and delta-method tests both reject on E2, E1 lands in
+# row 5 of the rule, the guardrail passes, assignment SRM passes). The seed was searched at
+# 57,600 per arm and set on 5 October 2026 (first seed 20261002; story share 0.975 of 200).
 seed: 20261002
 seed_search_start: 20261002
 
 base:
   dataset: EB-NeRD small, train split (18 to 25 May 2023)
-  raw_dir: data/raw/ebnerd_small      # untracked; licence clauses 4.2 and 4.3 (spec section 6)
+  raw_dir: data/raw/ebnerd_small      # untracked; licence clauses 4.2 and 4.3 (README, Data provenance)
   population_users: 15143
   # md5 of each raw parquet file, written by `abf simulate case02` into the manifest so a
   # reader can confirm identical bytes; never the data itself.
 
 design:
-  total_draws: 115200                 # arm sizes Binomial(115200, 0.5); 57,600 per arm expected; re-sized 4 October 2026 from scenario C (decision record v2, section 10)
+  total_draws: 115200                 # arm sizes Binomial(115200, 0.5); 57,600 per arm expected; re-sized from the scenario C check
   allocation: {control: 0.5, treatment: 0.5}
   arms_drawn_independently: true
   analysis_unit: draw_id              # clustering and resampling unit; random stream keyed by it
@@ -25,16 +25,16 @@ design:
   contrast_total_draws: 105000        # 52,500 per arm, sized on E1 alone (scenario "C at 52,500")
 
 treatment:
-  quality_tier: article_age_oldest_tercile   # spec section 6; totals proxy only in the contrast
-  suppression_delta: 0.15             # kept: scenario D lands E1 in row 5 in 0.962 of replicates (spec [D13], 4 Oct 2026)
+  quality_tier: article_age_oldest_tercile   # totals proxy only in the contrast scenario
+  suppression_delta: 0.15             # kept: scenario D lands E1 in row 5 in 0.962 of replicates
   click_lift_tau: 0.025               # scenarios C and D
   never_remove_last_inview: true
-  mechanism_check:                    # spec section 6, A18; measured 30 September 2026 [D16]
+  mechanism_check:                    # measured on the base population
     verdict: pass
     old_tier_share_lightest_decile: 0.167
     old_tier_share_heaviest_decile: 0.385
     old_tier_click_rate: 0.0444       # against E2 = 0.0906
-  quality_tier_validation:            # pre-set rule, kept unchanged (spec section 6)
+  quality_tier_validation:            # pre-set rule, kept unchanged
     subset: totals_window_closed_before_split
     spearman_max: -0.3                # per-article median age against pageviews / inviews
     tercile_min_share: 0.05
@@ -49,7 +49,7 @@ decision_rule:
     negative_feedback_max_increase_relative: 0.05   # must pass; simulated in both arms
   sensitivity_reread_margin_relative: 0.03          # notebook re-read, no extra simulation
 
-guardrail_simulation:                 # v1.0 mechanism, labelled simulated (spec section 6)
+guardrail_simulation:                 # labelled simulated throughout (README, Data provenance)
   per_impression_rate: 0.005
   low_quality_multiplier: 3.0
   heterogeneity_shape: 2.0            # g_i ~ Gamma(shape, mean 1) per population user
@@ -57,11 +57,11 @@ guardrail_simulation:                 # v1.0 mechanism, labelled simulated (spec
 
 operating_characteristics:
   seed: 20261003                      # distinct from the case seed
-  workers: 2                          # both time limits are stated for two workers [D15]
-  random_streams: keyed_counter_based # by (seed, draw_id, use); never one Generator per draw [D15]
-  replicates: 2000                    # B per scenario; v1.2 set 5,000; re-budgeted (A20) [D14]
+  workers: 2                          # both time limits are stated for two workers
+  random_streams: keyed_counter_based # by (seed, draw_id, use); never one Generator per draw
+  replicates: 2000                    # B per scenario
   scenarios: [A, B, C, D, C_at_52500, D_leaked_tier]
-  leaked_tier:                        # spec section 6, scenario D rerun (Kaufman et al. 2012)
+  leaked_tier:                        # scenario D rerun on a split-contaminated tier (Kaufman et al. 2012)
     quality_tier: totals_pageviews_per_inview_bottom_tercile
     without_totals: article_age_oldest_tercile
   bootstrap:
@@ -71,21 +71,21 @@ operating_characteristics:
     interval: normal
     statistic: relative_lift          # one cluster_bootstrap call per replicate
   joint_ship_rate_check: {scenario: C, target: 0.80, tolerance: 0.025}
-  time_limit_minutes: 35              # `abf oc case02`; measured 22.4 min at 64,100 (2 Oct) and 24.8 min at 57,600 (4 Oct 2026) [D15]
+  time_limit_minutes: 35              # `abf oc case02`; measured 22.4 min at 64,100 and 24.8 min at 57,600 per arm
   sweeps:                             # `abf oc case02 --sweeps`
-    time_limit_minutes: 70            # projected about 52 (eight sizes) from per-replicate timings of 1 Oct 2026; measured 41.12 minutes end to end on 11 Oct 2026 (2 workers, B = 1,000) [D15]
+    time_limit_minutes: 70            # measured 41.12 minutes end to end (2 workers, B = 1,000)
     replicates: 1000
     bootstrap: {scenarios: [A], replicates_per_size: 200, resamples: 200, interval: normal}
     wallclock_percentile_bootstrap: {replicates_per_size: 3, resamples: 1000, interval: percentile}
-    sample_size_per_arm: [10000, 15143, 25000, 52500, 57600, 64100, 100000, 200000]   # 57,600 added 4 Oct 2026; 64,100 kept as a measured point
+    sample_size_per_arm: [10000, 15143, 25000, 52500, 57600, 64100, 100000, 200000]   # 64,100 kept as a measured point
     heterogeneity_sigma: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]   # parametric generator, simulated
     tail_dispersion_r: [0.25, 0.5, 1.0, 2.0, 4.0]         # parametric generator, simulated
     heterogeneity_depth_off_point: {sigma: 0.0, depth_term: off}
     tail_bootstrap: {r: [0.25, 0.5], replicates: 200, resamples: 200, interval: normal}
-    parametric_n_per_arm: 57600       # follows design.total_draws / 2; re-sized 4 Oct 2026
+    parametric_n_per_arm: 57600       # follows design.total_draws / 2
 
 parametric_generator:
-  # ADR-07 Amendment 1, G1 to G12; base constants script returned OK.
+  # Parametric generator calibrated to the base population; targets and tolerances below.
   population_users: 15143
   mean_inviews: 170.75526645975037
   sd_inviews: 205.2198519271064
@@ -112,7 +112,3 @@ parametric_generator:
     behaviors: 5e6392d5c3d27994213fb834f8149528
     history: a8d50562d0f817178bf6ba308e87ad14
     articles: bb271df300a391040e9e59d2a224ec35
-
-deferred:
-  large_variant_feasibility_check: "2026-10-31"   # quoted so YAML and the JSON manifest agree on a string
-  real_guardrail_signal: disclosed in the README

@@ -1,10 +1,10 @@
-"""Case 02 data-generating process: real control, simulated treatment (spec case-02.md v1.3).
+"""Case 02 data-generating process: real control, simulated treatment.
 
 The control arm is observed EB-NeRD reading behaviour (small variant, ``train`` split); the
 ranking change, its effect and the negative-feedback guardrail are simulated on the same
 users' rows. Each replicate, and the committed run, draws users with replacement from the
 finite population (the base's 15,143 users); the draw is the analysis, clustering and
-random-stream unit (spec sections 5, 6 and 10).
+random-stream unit.
 
 Random streams. Every random quantity is a function of uniforms from ``keyed_uniform(seed,
 key, use)``, a counter-based generator: nested SplitMix64 finalisers (Steele, Lea and Flood
@@ -15,7 +15,7 @@ uniforms by an exact binomial inverse CDF (``binom_icdf``), so the fast path wor
 sufficient statistics and never touches individual in-views; the committed run's tables are
 expanded from those counts with further keyed uses, and their counts equal the fast path's.
 
-Mechanism, per treatment draw of population user i (spec sections 6 and 7):
+Mechanism, per treatment draw of population user i:
 
 * suppression: each old-tier in-view (article age at impression in the split's oldest tercile)
   other than the user's last in-view is removed independently with probability delta; a
@@ -33,7 +33,7 @@ Truths are the finite population's: the mean over its users of each user's expec
 outcomes under (delta, tau), computed by exact enumeration over the two removal binomials
 (``scenario_truths``) once per scenario, before any replicate.
 
-Licence (spec section 6): the tables and the ``truth`` audit table carry per-user rows from
+Licence: the tables and the ``truth`` audit table carry per-user rows from
 EB-NeRD and are written under ``data/generated/``, which is never tracked; the manifest
 carries aggregates only.
 """
@@ -166,7 +166,8 @@ def binom_icdf(u: Any, n: Any, p: Any) -> np.ndarray:
 
 @dataclass(frozen=True)
 class ParametricCounts:
-    """Count-level population of ADR-07 Amendment 1, G1 to G6."""
+    """Count-level parametric population: in-views, clicks, old-tier in-views and clicks, and
+    activity decile per user."""
 
     inviews: np.ndarray
     clicks: np.ndarray
@@ -176,7 +177,7 @@ class ParametricCounts:
 
 
 def parametric_uniforms(settings: Mapping[str, Any], seed: int) -> np.ndarray:
-    """Fixed independent uniforms for G11 common random numbers."""
+    """Fixed independent uniforms so every theta is evaluated on common random numbers."""
     return np.random.default_rng(seed).random((7, int(settings["population_users"])))
 
 
@@ -188,7 +189,7 @@ def prepare_parametric_draws(
     depth_off: bool = False,
     uniforms: np.ndarray | None = None,
 ) -> dict[str, np.ndarray]:
-    """Cache G1 to G3 and G4's normal draw, independently of theta (G11)."""
+    """Cache the draws that do not depend on theta."""
     if uniforms is None:
         uniforms = parametric_uniforms(settings, seed)
     mu, sd = float(settings["mean_inviews"]), float(settings["sd_inviews"])
@@ -228,7 +229,8 @@ def parametric_counts(
     depth_off: bool = False,
     prepared: Mapping[str, np.ndarray] | None = None,
 ) -> ParametricCounts:
-    """G1 to G6, with G9 sweep overrides and G10 depth off."""
+    """Build the count-level population, with sweep overrides for r and sigma and the depth
+    term switched off on request."""
     from scipy.special import expit
 
     if prepared is None:
@@ -261,7 +263,8 @@ def parametric_counts(
 
 
 def parametric_statistics(counts: ParametricCounts, *, splits: int, seed: int) -> dict[str, float]:
-    """G11/G12 targets, using package delta and naive standard errors."""
+    """Calibration targets (E2, E3, old-tier rate, SE ratio) from package delta and naive
+    standard errors."""
     if splits < 1:
         raise ValueError(f"splits must be at least 1, got {splits}")
     from abforensics.metrics.ratio import naive_event_rate, ratio_of_sums_arrays
@@ -285,7 +288,7 @@ def parametric_statistics(counts: ParametricCounts, *, splits: int, seed: int) -
 
 
 def parametric_gate(values: Any, target: float, tolerance: float) -> dict[str, Any]:
-    """G12: uncertainty of a median across independent populations."""
+    """Uncertainty of a median across independent populations."""
     values = np.asarray(values, dtype=float)
     median = float(np.median(values))
     se = float(np.std(values, ddof=1) / np.sqrt(len(values)) * 1.2533)
@@ -301,7 +304,7 @@ def parametric_gate(values: Any, target: float, tolerance: float) -> dict[str, A
 
 
 def parametric_frames(counts: ParametricCounts, *, seed: int) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """G7's placeholder layout, preserving all count-level sufficient statistics."""
+    """Expand count-level sufficient statistics into user and in-view frames."""
     rng = np.random.default_rng(seed)
     m, old, co, c = counts.inviews, counts.old_inviews, counts.old_clicks, counts.clicks
     n = len(m)
@@ -483,7 +486,7 @@ def make_parametric_base(
     sigma: float | None = None,
     depth_off: bool = False,
 ) -> RankingBase:
-    """G7/G14: build the simulated population and verify its count-level round trip."""
+    """Build the simulated population and verify its count-level round trip."""
     seed = int(settings["population_seed"])
     counts = parametric_counts(settings, r=r, sigma=sigma, depth_off=depth_off)
     inviews, users = parametric_frames(counts, seed=seed)
@@ -501,7 +504,7 @@ def make_parametric_base(
         (old_clicks, counts.old_clicks),
     ):
         if not np.array_equal(actual, expected):
-            raise ValueError("G14: generated frame did not preserve population counts")
+            raise ValueError("generated frame did not preserve population counts")
     return dataclasses.replace(
         base,
         leaked_old_inviews=None,
@@ -519,10 +522,10 @@ def _md5(path: Path) -> str:
 
 
 def load_base(raw_dir: Path | str) -> RankingBase:
-    """Read the EB-NeRD small ``train`` split and build the population (spec section 6).
+    """Read the EB-NeRD small ``train`` split and build the population.
 
     The click of an in-view is its article appearing in the page view's clicked list; clicked
-    articles absent from the in-view list are ignored, as in the A18 mechanism check.
+    articles absent from the in-view list are ignored, as in the mechanism check.
     """
     raw = Path(raw_dir)
     files = {
@@ -690,7 +693,10 @@ def parameters_from_config(config: Mapping[str, Any], scenario: str = "D") -> Ra
         raise ValueError(f"scenario must be one of {sorted(SCENARIO_EFFECTS)}; got {scenario!r}")
     tr, gs = config["treatment"], config["guardrail_simulation"]
     if tr.get("never_remove_last_inview") is not True:
-        raise ValueError("treatment.never_remove_last_inview must be true (spec section 4, E3)")
+        raise ValueError(
+            "treatment.never_remove_last_inview must be true "
+            "(the last in-view is never a suppression candidate)"
+        )
     use_delta, use_tau = SCENARIO_EFFECTS[scenario]
     delta = _num("treatment.suppression_delta", tr["suppression_delta"], 0.0, 1.0)
     tau = _num("treatment.click_lift_tau", tr["click_lift_tau"], 0.0, 10.0)
@@ -873,7 +879,7 @@ def potential_outcomes(
 
 
 def scenario_truths(po: pd.DataFrame) -> dict[str, float]:
-    """The finite population's true relative lifts (spec sections 4 and 6)."""
+    """The finite population's true relative lifts."""
     s = po.mean(numeric_only=True)
     return {
         "expected_relative_lift_clicks_per_user": float(
@@ -1013,7 +1019,7 @@ def simulate_ranking_experiment(
     if seed is None:
         if config.get("seed") is None:
             raise ValueError(
-                "config seed is null: pass a seed (spec section 6 seed selection rule)"
+                "config seed is null: pass a seed (the seed selection rule is in config.yaml)"
             )
         seed = int(config["seed"])
     design = config["design"]
@@ -1091,7 +1097,7 @@ def simulate_ranking_experiment(
     )
     telemetry_health.insert(1, "arm", np.asarray(ARMS)[telemetry_health["arm_code"].to_numpy()])
     telemetry_health = telemetry_health.drop(columns="arm_code")
-    truth = po.rename(columns={"user_id": "user_id"})
+    truth = po
 
     raw_summary = {k_: v for k_, v in base.summary.items() if k_ != "raw_md5"}
     manifest: dict[str, Any] = {

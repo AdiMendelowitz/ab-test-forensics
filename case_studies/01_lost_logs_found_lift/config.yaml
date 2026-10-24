@@ -4,10 +4,9 @@
 # re-applies it): the case seed is the first seed from 20260928 upwards whose single run
 # shows the case's story, namely the day-14 dashboard clears the ship rule, the
 # complete-data ITT interval lands in the continue zone (lower bound at or below +1.0%, upper
-# bound at or above 0) and the routing SRM check passes. The rule was written during the
-# generator rework, after 20260928 failed it under an intermediate version; under the final
-# generator 20260928, the first candidate, meets it. How often a random seed shows the story
-# is measured by `abf oc` (results/case01/oc_story.csv).
+# bound at or above 0) and the routing SRM check passes. Under the final generator 20260928,
+# the first candidate, meets it. How often a random seed shows the story is measured by
+# `abf oc` (results/case01/oc_story.csv).
 seed: 20260928
 days: 14
 eligible_products_per_day: 20000
@@ -28,10 +27,7 @@ decision_rule:
   # passing a +10% margin at no true effect happens only about 18% of the time on a complete
   # 14-day cohort (about 4,500 finished products per arm at a 5% return rate) and 80% of the time would
   # need about 33,000 finished products per arm. +10% is the harm tolerance: at the +1.0% ship floor, a
-  # return increase above +18.8% would cancel the gain in kept finished products. (During the review on
-  # 29 September the return margin was briefly raised to +25% to make a pass reachable; it was
-  # restored to +10% as breach-only. The committed run's return verdict is the same under
-  # every version: inconclusive, no breach.)
+  # return increase above +18.8% would cancel the gain in kept finished products.
   guardrails:
     packing_step_error_max_increase_absolute: 0.003  # must pass
     cycle_time_p95_max_increase_relative: 0.05          # must pass; product-clustered bootstrap

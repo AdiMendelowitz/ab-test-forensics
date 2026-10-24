@@ -1,4 +1,4 @@
-"""Calibration and validation of ADR-07 Amendment 1 with clarification C1/C2.
+"""Calibration and validation of the Case 02 parametric generator.
 
 The procedures return aggregates and never replace the stored generator parameters.
 """
@@ -19,7 +19,7 @@ STARTS = ((-2.3, -0.1, 0.3, -0.9), (-2.0, -0.3, 0.6, -0.6))
 def population_seeds(
     settings: Mapping[str, Any], phase: str, *, populations: int | None = None
 ) -> list[int]:
-    """C1: calibration and validation use separate ranges of population seeds."""
+    """Calibration and validation use separate ranges of population seeds."""
     if phase not in ("calibration", "validation"):
         raise ValueError("phase must be calibration or validation")
     count = int(settings[f"{phase}_populations"] if populations is None else populations)
@@ -38,7 +38,7 @@ def calibrate_parametric(
     splits: int | None = None,
     observer: Callable[[dict], None] | None = None,
 ) -> dict[str, Any]:
-    """G11/C2: fixed-draw least squares, checked against the frozen stored theta."""
+    """Fixed-draw least squares, checked against the frozen stored theta."""
     seeds = population_seeds(settings, "calibration", populations=populations)
     splits = int(settings["calibration_splits"] if splits is None else splits)
     draws = [ri.prepare_parametric_draws(settings, seed) for seed in seeds]
@@ -87,7 +87,7 @@ def validate_parametric(
     splits: int | None = None,
     observer: Callable[[dict], None] | None = None,
 ) -> dict[str, Any]:
-    """G12/G13: independent populations, uncertainty gates and disclosed diagnostics."""
+    """Independent populations, uncertainty gates and disclosed diagnostics."""
     seeds = population_seeds(settings, "validation", populations=populations)
     splits = int(settings["validation_splits"] if splits is None else splits)
     rows = []

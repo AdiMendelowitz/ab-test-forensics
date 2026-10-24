@@ -22,7 +22,7 @@ estimand. Targets are computed per replicate from the potential-outcome probabil
 from the logged products. Each estimator is scored against its own target (``bias``,
 ``coverage``) and against the decision estimand (``bias_vs_itt``, ``coverage_vs_itt``).
 ``rule_ship`` applies the pre-declared rule (lower relative bound above the margin) to each
-estimator's own estimate, as a dashboard would; ``rule_ship_itt_scale`` first rescales an
+estimator's own estimate, as a dashboard would; ``rule_ship_itt_scale`` first rescales a
 scan-based lower bound to the ITT scale by the replicate's dilution factor, separating
 the change of scale from the gain in power. These are operating characteristics of the
 rule in simulation; the package still never emits a decision about real data.
@@ -509,7 +509,7 @@ def run_scenarios(
     executor: Executor | None = None,
     chunks: int = 1,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Scenarios A to D and F (spec section 10). Returns (summary, replicates).
+    """Scenarios A to D and F. Returns (summary, replicates).
 
     ``lift`` is the true relative lift among scanned products for the effect scenarios; it
     defaults to the config's ``true_relative_lift``. The summary has one row per scenario x
