@@ -1,4 +1,4 @@
-"""Case 02 spec D17: scenario A naive-to-delta decomposition from the replicate cache."""
+"""Case 02: scenario A naive-to-delta decomposition from the replicate cache."""
 
 from __future__ import annotations
 

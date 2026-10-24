@@ -212,10 +212,6 @@
         "history": "a8d50562d0f817178bf6ba308e87ad14",
         "articles": "bb271df300a391040e9e59d2a224ec35"
       }
-    },
-    "deferred": {
-      "large_variant_feasibility_check": "2026-10-31",
-      "real_guardrail_signal": "disclosed in the README"
     }
   },
   "expected_relative_lift_clicks_per_user": -9.70561329727282e-06,

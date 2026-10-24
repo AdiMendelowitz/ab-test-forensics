@@ -1,4 +1,4 @@
-"""Unit tests for ratio_of_sums and naive_event_rate (spec case-02.md, sections 11 and 14)."""
+"""Unit tests for ratio_of_sums and naive_event_rate."""
 
 from __future__ import annotations
 

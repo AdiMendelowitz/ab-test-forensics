@@ -1,5 +1,4 @@
 """Regenerated Case 01 and Case 02 outputs are written with LF line endings on every platform
-(retro action A11; the Case 01 manifest and executed notebooks were added on 2026-10-07).
 `.gitattributes` normalises on add; the working copy must already match, so that `git add`
 prints no CRLF warning and a diff against the index is empty."""
 

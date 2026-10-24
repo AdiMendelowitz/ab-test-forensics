@@ -1,4 +1,4 @@
-"""Unit tests for jackknife_variance and cluster_bootstrap (spec case-02.md, sections 11 and 14)."""
+"""Unit tests for jackknife_variance and cluster_bootstrap."""
 
 from __future__ import annotations
 

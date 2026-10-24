@@ -49,7 +49,7 @@ def difference_in_proportions(
         Which population the counts come from (``"assigned"``, ``"exposed"``). Recorded so
         that two estimates from different populations cannot be confused.
     alpha
-        Two-sided significance level for the interval and the flag.
+        Two-sided level for both intervals; the p-value is reported, not thresholded.
 
     Raises
     ------

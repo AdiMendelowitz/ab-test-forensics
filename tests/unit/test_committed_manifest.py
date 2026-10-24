@@ -1,5 +1,4 @@
-"""The committed manifest must describe the committed config, for every case that has one
-(spec case-02.md, section 14)."""
+"""The committed manifest must describe the committed config, for every case that has one."""
 
 import json
 from pathlib import Path
@@ -13,7 +12,7 @@ CASES = ("case01", "case02")
 
 
 def _real_config(config, case):
-    # The parametric block is for the isolated synthetic path (ADR-07, item 4).
+    # The parametric block is for the isolated synthetic path.
     if case == "case02":
         return {key: value for key, value in config.items() if key != "parametric_generator"}
     return config

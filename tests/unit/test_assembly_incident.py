@@ -2,7 +2,7 @@
 
 The generator is a data-generating process with known truth, so the tests check that the
 truth it claims (in the manifest and the ``truth`` table) matches what it produced, and
-that the incident touches exactly the cell the spec says it touches.
+that the incident touches exactly the configured cell.
 """
 
 from __future__ import annotations
@@ -69,7 +69,7 @@ def test_assignment_is_rerandomised_across_seeds() -> None:
     a = simulate_population(SMALL_CONFIG, np.random.default_rng(1))
     b = simulate_population(SMALL_CONFIG, np.random.default_rng(2))
     assert a.extras["hash_salt"] != b.extras["hash_salt"]
-    # Two independent 50/50 bucketings agree on about half the users.
+    # Two independent 50/50 bucketings agree on about half the products.
     agree = float((a.arm == b.arm).mean())
     assert abs(agree - 0.5) < 4 * 0.5 / math.sqrt(a.n)
 
@@ -93,10 +93,12 @@ def test_row_counts_and_keys(data: AssemblyExperimentData) -> None:
     n = SMALL_CONFIG["days"] * SMALL_CONFIG["eligible_products_per_day"]
     assert len(data.products) == n == len(data.assignments) == len(data.truth)
     assert data.products["product_id"].is_unique
-    assert data.scans["product_id"].is_unique  # one render event per user in v1
+    assert data.scans["product_id"].is_unique  # one scan per product
     assert data.scans["event_id"].is_unique
     assert data.finished_products["finished_product_id"].is_unique
-    assert data.finished_products["product_id"].is_unique  # one order per converter in v1
+    assert data.finished_products[
+        "product_id"
+    ].is_unique  # one finished product per yielding product
     assert set(data.scans["product_id"]).issubset(set(data.products["product_id"]))
     assert set(data.finished_products["product_id"]).issubset(set(data.products["product_id"]))
     assert data.manifest["row_counts"] == {k: len(v) for k, v in data.tables().items()}
@@ -110,7 +112,7 @@ def test_scanned_is_a_strict_subset_in_both_arms(data: AssemblyExperimentData) -
     exposed = data.scans.merge(data.assignments, on="product_id")["arm"].value_counts()
     assert exposed["control"] < assigned["control"]
     assert exposed["treatment"] < assigned["treatment"]
-    # Control loses only the arm-independent non-render share; treatment loses more.
+    # Control loses only the arm-independent legacy-route share; treatment loses more.
     ctrl_rate = exposed["control"] / assigned["control"]
     se = math.sqrt(0.85 * 0.15 / assigned["control"])
     assert abs(ctrl_rate - 0.85) < 4 * se
@@ -230,7 +232,7 @@ def test_a_lift_change_moves_only_the_treatment_outcomes() -> None:
 
 
 def test_per_product_draws_survive_a_moved_older_batch() -> None:
-    # Moving the version threshold changes cell membership and the pre-period distribution
+    # Moving the batch threshold changes cell membership and the pre-period distribution
     # only for users whose membership changes; everyone else keeps every draw.
     base = simulate_population(SMALL_CONFIG, np.random.default_rng(9))
     other = simulate_population(_with_incident(batch_below="2"), np.random.default_rng(9))
@@ -331,7 +333,8 @@ def test_truth_matches_the_configured_effect(data: AssemblyExperimentData) -> No
     assert m["realised"]["sample_ate_absolute"] == pytest.approx(t["y1"].mean() - t["y0"].mean())
     assert m["expected_ate_absolute"] == pytest.approx((t["p_treatment"] - t["p_control"]).mean())
     assert m["expected_relative_lift_reached_scanner"] == pytest.approx(0.03)
-    # Dilution: the ITT effect is the rendered effect scaled by the rendered share of E[p0].
+    # Dilution: the ITT effect is the scanner-reach effect scaled by the scanner-reach share
+    # of E[p0].
     r = t["reached_scanner"]
     share = t.loc[r, "p_control"].sum() / t["p_control"].sum()
     assert m["expected_relative_lift_itt"] == pytest.approx(0.03 * share)
@@ -390,7 +393,7 @@ def test_scan_log_health_flags_only_the_older_batch(data: AssemblyExperimentData
     h = data.scan_log_health
     affected = (h["supply_line"] == "A") & batch_below_check(h["batch"].to_numpy(), "4")
     assert (h.loc[~affected, "event_loss_rate"] == 0).all()
-    # Pooled over arms the affected cell loses ~0.35 * 0.5 = 17.5% of rendered events.
+    # Pooled over arms the affected cell loses ~0.35 * 0.5 = 17.5% of scan events.
     assert 0.10 < h.loc[affected, "event_loss_rate"].mean() < 0.25
 
 

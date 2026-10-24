@@ -1,4 +1,4 @@
-"""Packaged procedures match the ADR-07 C1/C2 scratch measurements."""
+"""Packaged calibration and validation match the stored reference measurements."""
 
 import json
 from pathlib import Path
@@ -20,7 +20,7 @@ def settings():
     )["parametric_generator"]
 
 
-def test_validation_matches_scratch_golden(settings):
+def test_validation_matches_stored_reference(settings):
     from abforensics.simulation import parametric_calibration as pc
 
     expected = json.loads((REPO / "tests/fixtures/case02_parametric_validation.json").read_text())

@@ -1,4 +1,4 @@
-"""Case 02 sweeps of spec section 10 and ADR-07 items 5 and 6.
+"""Case 02 sweeps: heterogeneity, tail heaviness, sample size and runtime.
 
 Rebuild every parametric point, share replicate seeds, and write aggregates only.
 Runtime measurements run sequentially after the worker pool has finished.

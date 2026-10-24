@@ -15,7 +15,7 @@ Three layers sit between routing and the analysed population:
   potential outcome equals its control one. The scanned population is therefore a genuine
   subset of the routed one with its own valid, scan-conditioned estimand, and the
   intent-to-treat effect is the effect among scanned products diluted by the scan rate.
-* The incident (section 7 of the spec). Among products that reach the scanner on the
+* The incident. Among products that reach the scanner on the
   affected supply line below the batch threshold, the scan logger drops the scan event with
   a fixed probability in the arm(s) named by ``affects_arm``. The loss is drawn at random
   within the cell, independently of the product's outcome and cycle time. Routing is
@@ -141,9 +141,9 @@ def batch_below_check(versions: np.ndarray, threshold: str) -> np.ndarray:
 
 
 def hash_assign(product_ids: np.ndarray, salt: int = HASH_SALT) -> np.ndarray:
-    """Deterministic 50/50 assignment from a 64-bit integer mix of the user id and a salt.
+    """Deterministic 50/50 assignment from a 64-bit integer mix of the product id and a salt.
 
-    Models hash-based bucketing: for a given salt the same user always lands in the same
+    Models hash-based bucketing: for a given salt the same product always lands in the same
     arm, and the split is balanced in expectation without any coin being flipped at request
     time. A new salt is a new experiment's bucketing. Returns 1 for treatment, 0 for control.
     """
@@ -601,7 +601,8 @@ def simulate_assembly_experiment(
     )
 
     # Finished products: a product that finishes does so once within the outcome window; the
-    # records pipeline delivers the record 0 to 36 hours later, identically in both arms
+    # records pipeline delivers the record within the configured arrival-delay window
+    # (``records_pipeline.arrival_delay_hours``), identically in both arms
     # (timing drawn in ``simulate_population``). A fixed share of finished products is returned
     # within 14 days, identically in both arms; returned_at is NaT otherwise.
     y = pop.y.astype(bool)

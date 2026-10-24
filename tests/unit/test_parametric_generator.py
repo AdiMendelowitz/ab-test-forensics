@@ -1,4 +1,4 @@
-"""Generator checks from ADR-07 Amendment 1, G1 to G14."""
+"""Parametric generator checks."""
 
 import numpy as np
 import pytest

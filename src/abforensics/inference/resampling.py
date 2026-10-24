@@ -54,17 +54,13 @@ def _statistic_name(statistic: Statistic) -> str:
     return getattr(statistic, "name", getattr(statistic, "__name__", repr(statistic)))
 
 
-def _require_finite(frame, cols, unit_col):
-    import numpy as np
-
+def _require_finite(frame: pd.DataFrame, cols: list[str]) -> None:
     bad = {c: int((~np.isfinite(frame[c].to_numpy(dtype=float))).sum()) for c in cols}
     bad = {c: n for c, n in bad.items() if n}
     if bad:
         raise ValueError(
             f"non-finite values in {bad}; abforensics never drops missing values silently"
         )
-    if frame[unit_col].isna().any():
-        raise ValueError(f"missing unit keys in {unit_col!r}")
 
 
 def _unit_sums(
@@ -84,7 +80,7 @@ def _unit_sums(
     ]
     if not value_cols:
         raise ValueError("frame has no numeric columns to total")
-    _require_finite(frame, value_cols, unit_col)
+    _require_finite(frame, value_cols)
     sums = frame.groupby(keys, sort=False)[value_cols].sum()
     if len(sums) < 2:
         raise ValueError("at least two units are required")

@@ -1,4 +1,4 @@
-"""Run the Case 02 scenario table of spec section 10 on the finite population.
+"""Run the Case 02 scenario table on the finite population.
 
 Truths are computed before any replicate, and every rate is reported with its Monte Carlo standard
 error.
@@ -367,7 +367,15 @@ def run_oc_case02(
             [story_holds(group) for _, group in rows[rows.scenario == "D"].groupby("replicate")]
         )
     )
-    joint = _rate(rows[(rows.scenario == "C") & (rows.estimator == "welch_e1")].rule_row == 4)
+    check = oc["joint_ship_rate_check"]
+    check_scenario, target, tolerance = (
+        str(check["scenario"]),
+        float(check["target"]),
+        float(check["tolerance"]),
+    )
+    joint = _rate(
+        rows[(rows.scenario == check_scenario) & (rows.estimator == "welch_e1")].rule_row == 4
+    )
     wall = time.perf_counter() - start
     limit = oc["time_limit_minutes"]
     meta = dict(
@@ -385,9 +393,10 @@ def run_oc_case02(
         joint_ship_rate_check=dict(
             rate=joint[""],
             mc_se=joint["_mc_se"],
-            target=0.80,
-            tolerance=0.025,
-            within_tolerance=abs(joint[""] - 0.80) <= 0.025,
+            scenario=check_scenario,
+            target=target,
+            tolerance=tolerance,
+            within_tolerance=abs(joint[""] - target) <= tolerance,
         ),
         python=platform.python_version(),
         numpy=np.__version__,

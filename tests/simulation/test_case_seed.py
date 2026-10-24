@@ -1,9 +1,9 @@
 """The case seed was chosen by a stated rule; this test re-applies the rule.
 
 Rule (config.yaml): the first seed from 20260928 upwards whose single run shows the case's
-story. The day-14 dashboard (exposed users, orders received by day 14) clears the ship rule;
-the complete-data intent-to-treat interval lands in the continue zone (it reaches below the
-+1.0% margin and above zero); the assignment-level SRM check passes.
+story. The day-14 dashboard (products with a logged scan, finishes received by day 14) clears
+the ship rule; the complete-data intent-to-treat interval lands in the continue zone (it
+reaches below the +1.0% margin and above zero); the assignment-level SRM check passes.
 """
 
 from __future__ import annotations

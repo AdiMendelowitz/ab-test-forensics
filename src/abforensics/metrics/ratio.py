@@ -20,8 +20,8 @@ one user are dependent, and the variance must be computed at the user level. Thr
 
 ``naive_event_rate`` treats every impression as an independent Bernoulli trial: the pooled
 two-proportion test with n equal to the impression count. Under user-level heterogeneity its
-interval is too narrow (spec case-02.md, section 5: 1.48 times on the base, Type I error 16.8%
-at nominal 5%), and the result says so in its warnings.
+interval is too narrow (Case 02 README, Operating characteristics: 1.48 times on the base,
+Type I error 16.8% at nominal 5%), and the result says so in its warnings.
 """
 
 from __future__ import annotations
@@ -73,9 +73,11 @@ def _jackknife_var(c: np.ndarray, m: np.ndarray, log: bool) -> float:
     n = len(c)
     loo_den = m.sum() - m
     if np.any(loo_den == 0):
-        raise ValueError("denominator total 'denominator' is zero in some row")
+        raise ValueError("a leave-one-out denominator total is zero")
     theta = (c.sum() - c) / loo_den
     if log:
+        if np.any(theta <= 0):
+            return math.nan
         theta = np.log(theta)
     return float((n - 1) / n * np.sum((theta - theta.mean()) ** 2))
 
@@ -156,7 +158,12 @@ def ratio_of_sums_arrays(
             rel_ci = (math.exp(log_lift - z * se_log) - 1, math.exp(log_lift + z * se_log) - 1)
         else:
             rel_ci = (math.nan, math.nan)
-            warnings.append("a ratio is zero; the relative lift interval is undefined.")
+            if r_t > 0 and r_c > 0:
+                warnings.append(
+                    "a leave-one-out ratio is zero; the jackknife relative interval is undefined."
+                )
+            else:
+                warnings.append("a ratio is zero; the relative lift interval is undefined.")
         boot_resamples, boot_seed = None, None
     else:
         if seed is None:

@@ -1,4 +1,4 @@
-"""Unit tests for the Case 02 generator (spec case-02.md, sections 5, 6, 10 and 14).
+"""Unit tests for the Case 02 generator.
 
 All but the last test run on a small synthetic base, so they need no EB-NeRD download.
 """
@@ -264,7 +264,7 @@ def test_null_seed_is_rejected(base: ri.RankingBase) -> None:
         ri.simulate_ranking_experiment(CONFIG, base=base)
 
 
-# --- licence: no per-user data in tracked files (spec section 6) ----------------------------------
+# --- licence: no per-user data in tracked files ---------------------------------------------------
 
 # --- the real base (skipped without the download) -------------------------------------------------
 
@@ -272,11 +272,11 @@ def test_null_seed_is_rejected(base: ri.RankingBase) -> None:
 @pytest.mark.skipif(
     not (RAW / "train" / "behaviors.parquet").exists(), reason="EB-NeRD small not downloaded"
 )
-def test_real_base_matches_the_spec_measurements() -> None:
+def test_real_base_matches_the_base_measurements() -> None:
     b = ri.load_base(RAW)
     assert b.n_users == 15_143
     assert b.summary["inviews"] == 2_585_747
-    assert b.tier_cut_hours == pytest.approx(9.2, abs=0.1)  # D16
-    assert b.summary["ctr_ratio_of_sums"] == pytest.approx(0.0906, abs=5e-4)  # D3
+    assert b.tier_cut_hours == pytest.approx(9.2, abs=0.1)
+    assert b.summary["ctr_ratio_of_sums"] == pytest.approx(0.0906, abs=5e-4)
     assert b.inviews.max() < 4096
     assert (b.old_candidates_clicked + b.old_candidates_unclicked <= b.inviews - 1).all()
