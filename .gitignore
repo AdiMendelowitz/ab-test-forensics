@@ -1,4 +1,4 @@
-# Claude session notes and personal working files
+# Personal working files
 notes/
 
 # Data and results regenerated from seeds and manifests
@@ -31,7 +31,7 @@ dist/
 Thumbs.db
 .DS_Store
 
-# Claude session configuration (destination table for session skills)
+# Local tool configuration
 CLAUDE.md
 # Internal documents (design specifications, method notes, templates): kept on disk, untracked
 docs/

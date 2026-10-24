@@ -171,8 +171,9 @@ def exposure_rate_by_segment(
 ) -> SegmentExposureResult:
     """Share of assigned units with at least one exposure event, per arm and segment.
 
-    Joins ``assignments`` to ``users`` on ``user_col`` (inner; unmatched rows are counted
-    and reported in a warning, never dropped silently), flags each user as exposed if they
+    Joins ``assignments`` to ``users`` on ``user_col`` (left join: assigned users with no
+    row in ``users`` are kept with NA segments and counted in a warning, never dropped
+    silently), flags each user as exposed if they
     appear in ``exposures`` at least once, and compares the exposure rate between the two
     named arms within every segment with a two-proportion z-test. The overall row is
     included so that the reader sees where the aggregate gap comes from.

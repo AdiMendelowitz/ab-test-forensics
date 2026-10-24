@@ -224,6 +224,8 @@ def test_fallback_walk_lists_files_without_git(tmp_path):
 
 
 def test_walk_is_a_superset_of_git_ls_files():
+    if not (REPO / ".git").exists():
+        pytest.skip("needs a git checkout")
     tracked = set(
         subprocess.run(
             ["git", "ls-files"], cwd=REPO, check=True, capture_output=True, text=True

@@ -1,4 +1,4 @@
-"""Unit tests for difference_in_means (spec case-02.md, sections 4, 11 and 14)."""
+"""Unit tests for difference_in_means."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def test_welch_matches_scipy() -> None:
 def test_log_ratio_interval_covers_at_nominal_rate() -> None:
     rng = np.random.default_rng(21)
     reps, n, mu = 2_000, 2_000, 15.5
-    size = 0.75  # negative binomial size, CV about 1.2 as on the base (D4 = 1.153)
+    size = 0.75  # negative binomial size, CV about 1.2 as on the base (measured CV 1.153)
     p = size / (size + mu)
     covered = 0
     for _ in range(reps):

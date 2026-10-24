@@ -1,6 +1,6 @@
 """Command-line entry point: ``abf <command> <case>``.
 
-Commands are added when the case that needs them has a written design spec.
+Commands are added case by case.
 """
 
 from __future__ import annotations
@@ -193,11 +193,11 @@ def cmd_oc(
     max_seconds: float | None = None,
     sweeps: bool = False,
 ) -> int:
-    """Operating characteristics: scenarios A to D and F, loss sweep, conversion-deficit sweep.
+    """Operating characteristics: scenarios A to D and F, loss sweep, yield-deficit sweep.
 
     Work is split into units, one per simulated population group: the null scenarios (A,
     B), the effect scenarios together with the loss sweep (C, D, F and every loss value, all
-    on one population per replicate), and one unit per conversion-deficit value other than
+    on one population per replicate), and one unit per yield-deficit value other than
     the configured offset, which reuses scenario D's first replicates. Each unit's
     replicate-level rows are cached under ``results/<case>/parts/`` in a file named by a
     hash of everything that determines them: the validated generator parameters (less the
@@ -223,7 +223,6 @@ def cmd_oc(
     import json
     import os
     import platform
-    import time
     from concurrent.futures import ProcessPoolExecutor
     from dataclasses import asdict
 
@@ -521,7 +520,7 @@ def _cmd_oc_case02_sweeps(root, case, *, seed, jobs):
     return 0
 
 
-def plot_operating_characteristics(loss, path: Path, b: int, lift: float) -> None:  # noqa: ANN001
+def plot_operating_characteristics(loss, path: Path, b: int, lift: float) -> None:
     """Three panels against the loss probability: relative bias, coverage, SRM detection."""
     import matplotlib
 
@@ -579,7 +578,7 @@ def plot_operating_characteristics(loss, path: Path, b: int, lift: float) -> Non
     plt.close(fig)
 
 
-def _int_at_least(minimum: int):  # noqa: ANN202
+def _int_at_least(minimum: int):
     def parse(text: str) -> int:
         value = int(text)
         if value < minimum:
@@ -625,7 +624,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--sweep-replicates",
         type=_at_least_two,
         default=None,
-        help="oc: B per conversion-deficit sweep point",
+        help="oc: B per yield-deficit sweep point",
     )
     parser.add_argument("--jobs", type=_at_least_one, default=None, help="oc: worker processes")
     parser.add_argument(
@@ -637,7 +636,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sweeps",
         action="store_true",
-        help="oc case02: run the sweeps of spec section 10 (fixed B; rejects --replicates, "
+        help="oc case02: run the sweeps (fixed B per point; rejects --replicates, "
         "--sweep-replicates and --max-seconds)",
     )
     return parser
@@ -664,7 +663,7 @@ def main(argv: list[str] | None = None) -> int:
         if rejected:
             print(
                 f"abf oc case02 --sweeps: {', '.join(rejected)} not allowed; "
-                "B per sweep point is fixed by the spec (section 10)",
+                "B per sweep point is fixed by config.yaml (operating_characteristics.sweeps)",
                 file=sys.stderr,
             )
             return 2

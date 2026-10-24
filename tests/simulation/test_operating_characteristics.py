@@ -404,7 +404,7 @@ def test_scenario_claims_hold_at_the_case_regime() -> None:
     assert d["coverage"] < 0.95 - 3 * nominal_cov
     assert d["scan_srm_rate_0.001_ci_low"] > 0.99
     assert t.loc[("B", "dashboard_day14"), "rejection_rate"] > 0.05 + 3 * nominal_rej
-    # Symmetric loss: no exposure SRM beyond nominal and no bias against its own target.
+    # Symmetric loss: no scan-level SRM beyond nominal and no bias against its own target.
     f = t.loc[("F", "dashboard_day14")]
     assert _within(f["bias"], 0.0, f["bias_mc_se"])
     assert f["scan_srm_rate_0.05"] < 0.05 + 4 * nominal_rej

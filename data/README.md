@@ -4,6 +4,6 @@
 
 `generated/` is not tracked: the simulated tables, rebuilt from a manifest with `uv run abf simulate <case>`.
 
-`raw/` is not tracked: external downloads (case 03 uses Open Power System Data hourly load), fetched by a script that records the dataset version in the manifest.
+`raw/` is not tracked: external downloads. Case 02 reads the EB-NeRD small dataset from `raw/ebnerd_small` (source and licence terms in the Case 02 README, Data provenance); `uv run abf simulate case02 --synthetic` runs the case without it.
 
-A fresh clone runs case 01 with no download.
+A fresh clone runs Case 01 with no download.
