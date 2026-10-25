@@ -234,7 +234,42 @@ def test_failed_row_count_check_writes_no_csv(small_config, base, tmp_path, monk
     out_dir = tmp_path / "sweeps"
     with pytest.raises(ValueError, match="oc_sweep_tail.csv: expected"):
         sw.run_sweeps_case02(small_config, base, oc_seed=7, workers=1, out_dir=out_dir)
-    assert list(tmp_path.rglob("*.csv")) == []
+    assert not out_dir.exists() or [p for p in out_dir.rglob("*") if p.is_file()] == []
+
+
+def _size_flags(config, field):
+    return {
+        task["size_per_arm"]: task[field]
+        for task in sw.sweep_tasks(config)
+        if task["kind"] == "size"
+    }
+
+
+def test_marked_sizes_follow_configured_population(small_config):
+    # RAID R15 (a): the population mark moves with base.population_users.
+    small_config["base"]["population_users"] = 400
+    small_config["operating_characteristics"]["sweeps"]["sample_size_per_arm"] = [400, 600, 15143]
+    assert _size_flags(small_config, "marked") == {400: "yes", 600: "no", 15143: "no"}
+
+
+def test_marked_sizes_unchanged_for_committed_config(committed_config):
+    # The committed tables keep their marks: compare with results/case02 as committed.
+    flags = _size_flags(committed_config, "marked")
+    results = Path(__file__).resolve().parents[2] / "results" / "case02"
+    meta = json.loads((results / "oc_sweep_meta.json").read_text(encoding="utf-8"))
+    sizes = committed_config["operating_characteristics"]["sweeps"]["sample_size_per_arm"]
+    assert meta["marked_sizes"] == [int(s) for s in sizes if flags[int(s)] == "yes"]
+    for name in ("oc_sweep_size.csv", "oc_sweep_runtime.csv"):
+        table = pd.read_csv(results / name)
+        committed = dict(zip(table["size_per_arm"], table["marked"], strict=False))
+        assert committed == {size: flags[size] for size in committed}
+
+
+def test_missing_population_users_names_key(small_config):
+    # RAID R15 (b): a missing key raises the module's ValueError, not a bare KeyError.
+    del small_config["base"]["population_users"]
+    with pytest.raises(ValueError, match="missing key: base.population_users"):
+        sw.sweep_tasks(small_config)
 
 
 def test_missing_replicates_names_key(small_config, base, tmp_path):
