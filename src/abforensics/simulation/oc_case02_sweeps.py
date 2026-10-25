@@ -20,7 +20,11 @@ from abforensics.simulation import oc_case02 as oc
 from abforensics.simulation import ranking_incident as ri
 from abforensics.simulation.oc_case02 import bootstrap_relative_lift
 
-MARKED_SIZES = (15143, 52500, 57600, 64100)
+# Sizes marked in the sweep tables besides the base population (RAID R15 a): 52,500 is the
+# C_at_52500 scenario, 57,600 the committed design (design.total_draws / 2) and 64,100 a
+# measured point (config.yaml). The population size comes from base.population_users, so a
+# large-variant config marks its own population.
+DESIGN_MARKED_SIZES = (52500, 57600, 64100)
 METHODS = ("delta", "jackknife", "bootstrap_normal", "bootstrap_percentile")
 
 
@@ -74,8 +78,20 @@ def _settings(config):
     return sweeps, generator
 
 
+def _population_users(config) -> int:
+    base = _required(config, "base")
+    return int(_required(base, "population_users", "base."))
+
+
+def _marked_sizes(config) -> frozenset[int]:
+    """Sizes flagged in the sweep outputs: the configured base population plus the design sizes."""
+    return frozenset((_population_users(config), *DESIGN_MARKED_SIZES))
+
+
 def _tasks(config, size_chunks):
     sweeps, _ = _settings(config)
+    population = _population_users(config)
+    marked_sizes = _marked_sizes(config)
     if size_chunks < 1:
         raise ValueError("size_chunks must be at least 1")
     indices = list(range(int(sweeps["replicates"])))
@@ -106,10 +122,8 @@ def _tasks(config, size_chunks):
                         scenario=scenario,
                         size_per_arm=int(size),
                         total_draws=2 * int(size),
-                        marked="yes" if size in MARKED_SIZES else "no",
-                        above_population=(
-                            "yes" if size > int(config["base"]["population_users"]) else "no"
-                        ),
+                        marked="yes" if size in marked_sizes else "no",
+                        above_population="yes" if size > population else "no",
                         replicates=indices[chunk::size_chunks],
                     )
                 )
@@ -212,7 +226,7 @@ def time_methods(c_t, m_t, c_c, m_c, seed, *, normal_resamples, percentile_resam
     return seconds
 
 
-def _runtime_table(base, prm, g, sweeps, oc_seed):
+def _runtime_table(base, prm, g, sweeps, oc_seed, marked_sizes):
     sizes = sorted(sweeps["sample_size_per_arm"])
     budgets = dict(
         normal_resamples=sweeps["bootstrap"]["resamples"],
@@ -238,7 +252,7 @@ def _runtime_table(base, prm, g, sweeps, oc_seed):
                     source="real_base_resampling",
                     size_per_arm=int(size),
                     total_draws=2 * int(size),
-                    marked="yes" if size in MARKED_SIZES else "no",
+                    marked="yes" if size in marked_sizes else "no",
                     method=method,
                     resamples=budgets["normal_resamples"]
                     if method == "bootstrap_normal"
@@ -332,7 +346,7 @@ def run_sweeps_case02(
     runtime_start = time.perf_counter()
     prm = specs["A"].prm
     tables["runtime"] = _runtime_table(
-        base, prm, ri.guardrail_multipliers(base, prm), sweeps, oc_seed
+        base, prm, ri.guardrail_multipliers(base, prm), sweeps, oc_seed, _marked_sizes(config)
     )
     runtime_seconds = time.perf_counter() - runtime_start
     out_dir = Path(out_dir)
@@ -365,7 +379,9 @@ def run_sweeps_case02(
         size_chunks=int(chunks),
         sweeps_config=sweeps,
         theta=generator["theta"],
-        marked_sizes=[int(size) for size in sweeps["sample_size_per_arm"] if size in MARKED_SIZES],
+        marked_sizes=[
+            int(size) for size in sweeps["sample_size_per_arm"] if size in _marked_sizes(config)
+        ],
         row_counts=row_counts,
         parallel_seconds=parallel_seconds,
         runtime_seconds=runtime_seconds,
