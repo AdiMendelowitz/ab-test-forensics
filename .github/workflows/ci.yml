@@ -8,6 +8,9 @@ on:
   schedule:
     - cron: "17 3 * * 1"  # weekly: the slow statistical tests
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
