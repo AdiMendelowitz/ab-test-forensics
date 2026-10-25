@@ -20,7 +20,7 @@
 </p>
 <p align="center"><sub>Case 01, single committed run (seed 20260928), complete data: the same experiment read on two populations.</sub></p>
 
-Reproducible case studies in how online experiments produce the wrong decision, and what a senior practitioner does about it.
+Reproducible case studies in how online experiments produce the wrong decision, and how I suggest handling it.
 
 Most A/B testing material teaches how to obtain `p < 0.05`. This repository covers the step before that:
 
