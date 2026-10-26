@@ -64,3 +64,7 @@ extend-exclude = ["notes", "*.ipynb", "data", "results"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# notebook cell sources are kept byte for byte; long lines inside them are content
+"scripts/build_case02_notebook.py" = ["E501"]

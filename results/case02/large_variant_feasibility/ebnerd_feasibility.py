@@ -1,7 +1,7 @@
 """Feasibility check of EB-NeRD as the semi-synthetic base for Case 02.
 
 Usage (repo root, after unzipping the small variant to data/raw/ebnerd_small/):
-    uv run python notes/tools/ebnerd_feasibility.py data/raw/ebnerd_small
+    uv run python results/case02/large_variant_feasibility/ebnerd_feasibility.py data/raw/ebnerd_small
 
 Answers, on the 7-day behaviours split, the questions the spec's data decision turns on:
 1. Per-user activity over 7 days: impressions (page views), in-view articles, clicks; quantiles,
