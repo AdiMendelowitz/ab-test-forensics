@@ -5,3 +5,10 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
+  - repo: local
+    hooks:
+      - id: public-reader-check
+        name: public-reader check
+        entry: uv run python scripts/public_reader_check.py
+        language: system
+        pass_filenames: false
