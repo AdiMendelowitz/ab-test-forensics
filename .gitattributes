@@ -2,3 +2,4 @@
 *.png binary
 *.parquet binary
 *.ipynb text eol=lf
+results/case02/large_variant_feasibility/k5_feasibility.log -text

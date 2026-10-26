@@ -1,0 +1,31 @@
+behaviours rows: 12,063,890; columns: ['impression_id', 'article_id', 'impression_time', 'read_time', 'scroll_percentage', 'device_type', 'article_ids_inview', 'article_ids_clicked', 'user_id', 'is_sso_user', 'gender', 'postcode', 'age', 'is_subscriber', 'session_id', 'next_read_time', 'next_scroll_percentage']
+impression_time span: 2023-05-18 07:00:00 to 2023-05-25 06:59:59
+
+users in split: 788,090
+page_views: mean 15.3  median 9  p90 38  p99 82  max 250  sd 17.7
+    inview: mean 169.8  median 97  p90 418  p99 953  max 6,869  sd 203.5
+    clicks: mean 15.4  median 9  p90 38  p99 83  max 251  sd 17.7
+share with zero clicks in the 7 days: 0.000
+share with at least one click: 1.000
+top 1% of users by in-view: 7.2% of in-view, 6.2% of clicks
+
+E1 clicks per user 15.397 (sd 17.74);  E2 ratio of sums 0.0907;  E3 mean user rate 0.1011
+E3 / E2 = 1.11  (spec's parametric generator: 6.2% / 3.4% = 1.83)
+
+A/A splits (400): delta/naive SE ratio median 1.46 (IQR 1.46 to 1.46)
+naive test rejects 0.150, delta-method 0.050, E1 Welch 0.052  (MC SE about 0.011 at 5%)
+verdict on the headline: holds (ratio >= 1.4)
+
+articles: 125,541; columns: ['article_id', 'title', 'subtitle', 'last_modified_time', 'premium', 'body', 'published_time', 'image_ids', 'article_type', 'url', 'ner_clusters', 'entity_groups', 'topics', 'category', 'subcategory', 'category_str', 'total_inviews', 'total_pageviews', 'total_read_time', 'sentiment_score', 'sentiment_label']
+  premium: {False: 115381, True: 10160}
+  article_type: {'article_default': 115251, 'article_video_standalone': 3923, 'article_page_nine_girl': 3583, 'article_scribblelive': 873, 'article_opinionen': 572}
+  category_str: {'nyheder': 27876, 'underholdning': 24909, 'krimi': 22579, 'sport': 18767, 'side9': 4628}
+  sentiment_label: {'Negative': 61130, 'Neutral': 44001, 'Positive': 20410}
+  total_inviews: {'mean': 296775.0617364747, '50%': 293488.5, 'max': 4600434.0}
+  total_pageviews: {'mean': 56130.887905082345, '50%': 43590.0, 'max': 1637751.0}
+  total_read_time: {'mean': 3284709.0, '50%': 2334108.0, 'max': 218175552.0}
+  published_time: {Timestamp('2023-04-04 03:41:07'): 52, Timestamp('2023-06-01 11:01:56'): 20, Timestamp('2021-03-01 17:00:00'): 12, Timestamp('2023-04-04 03:50:52'): 11, Timestamp('2023-04-04 03:41:19'): 10}
+  historical pageviews/inviews per article: median 0.146, p10 0.015, p90 0.257 on 18,336 articles
+  candidate quality proxy: tercile of this ratio, computed on article-level totals; check the totals' window against the evaluation split before relying on it
+
+history rows: 788,090; columns: ['user_id', 'impression_time_fixed', 'scroll_percentage_fixed', 'article_id_fixed', 'read_time_fixed']  (21-day click history: the pre-period covariate for invariants and a CUPED case)
