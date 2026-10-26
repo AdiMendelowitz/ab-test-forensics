@@ -1,0 +1,121 @@
+{
+  "provenance": "transcribed on 2026-10-25 from the Codex K5 run report of 2026-10-14 (kept outside the repository); machine memory unit not printed by the run, read as kilobytes",
+  "load_base_seconds": {
+    "value": 707.4290107000015,
+    "unit": "seconds",
+    "source_text": "RESULT load_base seconds (read plus build): 707.4290107000015",
+    "k5_line": 205
+  },
+  "build_base_seconds": {
+    "value": 201.96959029999925,
+    "unit": "seconds",
+    "source_text": "RESULT build_base alone, seconds: [201.96959029999925]",
+    "k5_line": 206
+  },
+  "simulate_seconds": {
+    "value": 1784.913386100001,
+    "unit": "seconds",
+    "source_text": "RESULT abf simulate case02 exit code: 0 seconds: 1784.913386100001",
+    "k5_line": 236
+  },
+  "peak_working_set_bytes_after_load": {
+    "value": 9996099584,
+    "unit": "bytes",
+    "source_text": "RESULT peak working set bytes (process): 9996099584",
+    "k5_line": 212
+  },
+  "peak_working_set_bytes_after_simulate": {
+    "value": 10171904000,
+    "unit": "bytes",
+    "source_text": "RESULT peak working set bytes (process): 10171904000",
+    "k5_line": 237
+  },
+  "machine_memory_reported": {
+    "value": 16571704,
+    "unit": "kilobytes (assumed: the run printed the TotalVisibleMemorySize column without a unit, see provenance)",
+    "source_text": "              16571704            3204832",
+    "k5_line": 97,
+    "column_header_line_95": "TotalVisibleMemorySize FreePhysicalMemory"
+  },
+  "users": {
+    "value": 788090,
+    "unit": "users",
+    "source_text": "RESULT active users after the section 6 filter (base.n_users): 788090",
+    "k5_line": 207
+  },
+  "python_version": {
+    "value": "3.14.0",
+    "unit": "version",
+    "source_text": "Python 3.14.0",
+    "k5_line": 93
+  },
+  "commit": {
+    "value": "4fb21ff",
+    "unit": "git commit (short hash)",
+    "source_text": "4fb21ff Case 02 data contract: keep the three-fact list intact around the age count",
+    "k5_line": 40
+  },
+  "date": {
+    "value": "2026-10-14",
+    "unit": "ISO date (the K5 line also carries the start time 13:37:21)",
+    "source_text": "Wednesday, 14 October 2026 13:37:21",
+    "k5_line": 33
+  },
+  "cv_all_train_users": {
+    "value": 1.1522833456841122,
+    "unit": "ratio (sd ddof 0 over mean)",
+    "source_text": "RESULT CV (sd ddof 0 over mean): 1.1522833456841122",
+    "k5_line": 265
+  },
+  "cv_section6_base": {
+    "value": 1.1521549428996425,
+    "unit": "ratio (sd ddof 0 over mean)",
+    "source_text": "RESULT section 6 base CV of clicks per user (sd ddof 0 over mean): 1.1521549428996425",
+    "k5_line": 210
+  },
+  "simulate_seed": {
+    "value": 20261002,
+    "unit": "seed",
+    "source_text": "Line       : seed: 20261002",
+    "k5_line": 160
+  },
+  "simulate_total_draws": {
+    "value": 115200,
+    "unit": "draws",
+    "source_text": "Line       :   total_draws: 115200                 # arm sizes Binomial(115200, 0.5); 57,600 per arm expected;",
+    "k5_line": 183,
+    "note": "trailing whitespace of the K5 line removed; the line continues in the K5 report with a comment"
+  },
+  "run_conditions": {
+    "chrome_running": {
+      "value": false,
+      "unit": "boolean",
+      "source_text": "The peak working set is the peak of the Python process at the end of each script. Chrome running: no, from the empty process listings in steps 0 and 5.",
+      "k5_line": 511
+    },
+    "pycharm_open": {
+      "value": true,
+      "unit": "boolean",
+      "source_text": "PyCharm was open; supplementary Get-Process pycharm64 output:",
+      "k5_line": 504
+    },
+    "peak_working_set_definition": {
+      "value": "peak of the Python process at the end of each script",
+      "unit": "text",
+      "source_text": "The peak working set is the peak of the Python process at the end of each script. Chrome running: no, from the empty process listings in steps 0 and 5.",
+      "k5_line": 511
+    },
+    "simulate_seconds_include_md5_pass": {
+      "value": true,
+      "unit": "boolean",
+      "source_text": "The generated-file listing is pasted under Observations. Simulation seconds include the md5 pass over the raw files performed by load_base. simulate=1784.913386100001 s; the script completed successfully at the copied committed draw count. The process peak working set is 10171904000 bytes, as printed above.",
+      "k5_line": 243
+    },
+    "script_run_unmodified": {
+      "value": true,
+      "unit": "boolean",
+      "source_text": "Step 4: all-train CV and unmodified feasibility script. Both exit codes 0; neither was retried. The start timestamp was before the brief's start-time cutoff.",
+      "k5_line": 245
+    }
+  }
+}
