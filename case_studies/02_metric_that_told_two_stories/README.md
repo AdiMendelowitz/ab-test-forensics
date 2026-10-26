@@ -184,7 +184,7 @@ The dashboard's E2 lift is a valid statement about impression-weighted click-thr
 - Item-level effects collapse into two article-age tiers, position effects are carried by the old-article share, and there is no novelty effect within 7 days, with one device per user.
 - The population is the active-reader selection described above, and results are conditional on it. Eligibility is conditional on observed activity (every base user has at least one click in the split week), so the case says nothing about inactive or zero-click users; its target population is the active EB-NeRD readers of 18 to 25 May 2023 and the resampling world built on them.
 - The committed run is one draw and the seed is chosen by a stated rule; the rate at which a random seed shows the story is 0.961 (MC SE 0.0043; B = 2,000).
-- The 15,143-user base is a small variant, and a feasibility check on the large variant is planned.
+- The 15,143-user base is a small variant; a one-off check on one population of 788,090 users of the large variant (400 A/A splits, 14 October 2026) gave a median delta-to-naive standard-error ratio of 1.46 (IQR 1.46 to 1.46) and a naive Type I error of 15.0% (60 of 400 splits, MC SE 1.8 points), so the ratio headline held there, but the old-tier mechanism check was not run on it and no other figure in this case uses it (report: `case_studies/02_metric_that_told_two_stories/large_variant_check.md`).
 - The heterogeneity and tail sweep points each use one simulated population, the size and runtime sweeps resample the real base, and sample sizes above 15,143 per arm sit in the resampling world.
 
 ## Reproduce
