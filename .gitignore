@@ -11,6 +11,8 @@ results/**
 !results/*/oc_*.csv
 !results/*/oc_meta.json
 !results/*/oc_sweep_meta.json
+!results/case02/large_variant_feasibility/
+!results/case02/large_variant_feasibility/*
 
 # Python
 .venv/
