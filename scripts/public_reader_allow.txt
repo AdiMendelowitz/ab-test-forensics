@@ -1,0 +1,2 @@
+tests/unit/test_public_reader_check.py:notes/
+results/case02/large_variant_feasibility/ebnerd_feasibility.py:notes/
