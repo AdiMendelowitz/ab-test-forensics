@@ -191,10 +191,13 @@ The dashboard's E2 lift is a valid statement about impression-weighted click-thr
 
 ```
 uv run abf simulate case02
+uv run python scripts/build_case02_notebook.py
 uv run abf run case02
 uv run abf oc case02
 uv run abf oc case02 --sweeps
 ```
+
+The notebook is generated: `scripts/build_case02_notebook.py` writes `analysis.ipynb`, and `tests/unit/test_build_case02_notebook.py` fails if the committed notebook differs from what the builder writes. Case 01's notebook is the artefact itself and has no builder.
 
 `abf simulate case02` needs the EB-NeRD small download under `data/raw/ebnerd_small`; `abf simulate case02 --synthetic` runs without it. Run time of `abf simulate case02` at 115,200 draws: median 33.5 s (range 32.2 to 34.6 s) over three runs after one warm-up, measured on 11 October 2026 on the author's i7-1165G7 laptop under Windows 11 on mains power. `abf oc case02` and `abf oc case02 --sweeps` run in one uninterrupted pass and write their tables to `results/case02/`; unlike Case 01 they keep no unit cache, do not resume, and reject `--max-seconds`.
 
