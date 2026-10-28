@@ -19,12 +19,15 @@ jobs:
         python-version: ["3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: ${{ matrix.python-version }}
       - run: uv sync --locked --group dev
       - run: uv run ruff check .
       - run: uv run ruff format --check .
+      - run: uv run python scripts/changelog_check.py
       - run: uv run python scripts/public_reader_check.py
       - run: uv run pytest
 
