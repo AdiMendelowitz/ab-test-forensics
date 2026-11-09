@@ -4,6 +4,10 @@ All entries precede the first release (0.1.0). Dates are commit dates.
 
 ## 26 October 2026
 
+- Case 01 README: scan parity is checked against the routing records; an A/A test alone does not confirm it (adec2c3).
+- K23: Case 02 notebook builder tracked with a test; public-reader check in pre-commit and CI (f20746a).
+- Case 01 README: drop the unsourced runtime sentence (3d60522).
+- CHANGELOG: commit hashes on every bullet; sections for 25 and 26 October; 23 October re-dated to its merge date (M6) (2254c00).
 - Case 02: commit the large-variant evidence bundle that large_variant_check.md cites (M12) (ec556f9).
 - Case 02: large-variant feasibility check from the 2026-10-14 run (M12) (3264315).
 
@@ -42,8 +46,10 @@ All entries precede the first release (0.1.0). Dates are commit dates.
 
 ## 13 October 2026
 
+- Case 02 data contract: keep the three-fact list intact around the age count (4fb21ff).
 - Case 02 data contract added, with the count of negative-age in-views and old-tier cut ties (e647ed4).
 - Fixes: population flag read from config, zero-split guard, sweep tables validated before writing (9610bcc).
+- Case 02 data contract (5b068b5).
 - Case 02 README: measured runtime outputs change on rerun; the sweep outputs that reproduce byte for byte stated after a fresh-clone rerun (44b6d4d, 4f5c67b).
 
 ## 12 October 2026

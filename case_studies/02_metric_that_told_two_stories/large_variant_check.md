@@ -37,4 +37,6 @@ On one population of 788,090 users the median SE ratio was 1.46 over 400 A/A spl
 
 ## 6 Sources
 
+SHA-256 of the archived script `results/case02/large_variant_feasibility/ebnerd_feasibility.py` (hashlib.sha256; `Get-FileHash -Algorithm SHA256` gives the same value): `9698340712e0df6cb2a735ef80e7155baf62056206eddd09b8acd1b68d4f2ad1`
+
 LOG = `results/case02/large_variant_feasibility/k5_feasibility.log`; PY = `results/case02/large_variant_feasibility/ebnerd_feasibility.py` (the script as run, byte-identical); TJ = `results/case02/large_variant_feasibility/timing.json` (transcribed from the Codex K5 run report of 2026-10-14, kept outside the repository, with each source line quoted); README = `case_studies/02_metric_that_told_two_stories/README.md`; DR = the design record kept outside the repository, section 17, cited by row. Line numbers refer to the committed copies.

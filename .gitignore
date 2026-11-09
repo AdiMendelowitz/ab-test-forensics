@@ -16,6 +16,7 @@ results/**
 !results/*/rollout/oc_*.csv
 !results/*/rollout/oc_*.json
 !results/*/rollout/run_*.csv
+!results/case01/power_table.csv
 !results/case02/large_variant_feasibility/
 !results/case02/large_variant_feasibility/*
 
