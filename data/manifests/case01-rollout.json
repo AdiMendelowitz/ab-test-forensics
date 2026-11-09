@@ -1,0 +1,82 @@
+{
+  "case": "case01-rollout",
+  "config": {
+    "baseline_yield_rate": 0.032,
+    "canary": {
+      "alpha": 0.001
+    },
+    "days": 28,
+    "decision_rule": {
+      "ship_if_lower_bound_above_relative": 0.01
+    },
+    "eligible_products_per_day": 20000,
+    "incident": {
+      "affects_arm": "treatment",
+      "batch_below": "4",
+      "enabled": false,
+      "scan_loss_probability": 0.35,
+      "supply_line": "A"
+    },
+    "legacy_route_probability": 0.15,
+    "operating_characteristics": {
+      "canary_replicates": 10000,
+      "kappa_sweep": [
+        0.0,
+        0.0015625,
+        0.003125,
+        0.00625
+      ],
+      "replicates": 5000,
+      "s2_stage_lifts": [
+        0.0,
+        0.015,
+        0.03
+      ],
+      "seed": 2843733299
+    },
+    "outcome_window_days": 7,
+    "schedule": [
+      {
+        "days": [
+          1,
+          7
+        ],
+        "p": 0.01
+      },
+      {
+        "days": [
+          8,
+          14
+        ],
+        "p": 0.1
+      },
+      {
+        "days": [
+          15,
+          28
+        ],
+        "p": 0.5
+      }
+    ],
+    "seed": 4180576477,
+    "trend_kappa": 0.003125,
+    "true_relative_lift": 0.03
+  },
+  "content_sha256": "09e4956ae63341eed79f4c6b5bda5458f0da550d4ea11a3b4f7b876511d14699",
+  "realised_control_rate": 0.032000180172892856,
+  "routed_to_new_station_by_stage": [
+    1434,
+    13827,
+    140347
+  ],
+  "row_counts": {
+    "products": 560000
+  },
+  "seed": 4180576477,
+  "truths": {
+    "E_final_abs": 0.000833850000000004,
+    "E_final_rel": 0.025500000000000078,
+    "E_ramp_abs": 0.0008160000000000042,
+    "E_ramp_rel": 0.025500000000000078
+  }
+}

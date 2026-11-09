@@ -1,0 +1,47 @@
+{
+  "S1_sign_disagreement": [
+    0.273,
+    0.006300333324515458
+  ],
+  "S2_E_ramp_minus_E_final_rel": -0.009318457031250116,
+  "canary_replicates": 10000,
+  "case": "case01-rollout",
+  "code_sha256": "08d1871de7c6e7f2b5c3d6bd4dc8fa83cee3034d76067595c35436338d456950",
+  "day_standardised_variance_shares": [
+    0.8409014463504877,
+    0.09249915909855369,
+    0.06659939455095865
+  ],
+  "flags": [],
+  "kappa_sweep": [
+    0.0,
+    0.0015625,
+    0.003125,
+    0.00625
+  ],
+  "library_versions": {
+    "numpy": "2.5.3",
+    "pandas": "3.0.6",
+    "scipy": "1.18.1"
+  },
+  "machine": "Windows-11",
+  "pooled_expectation_default_kappa": {
+    "abs": 0.000816110227874936,
+    "rel": 0.025685224241180915
+  },
+  "python": "3.14.0",
+  "replicates": 5000,
+  "s2_stage_lifts": [
+    0.0,
+    0.015,
+    0.03
+  ],
+  "scenarios": [
+    "S0",
+    "S1",
+    "S2",
+    "S3"
+  ],
+  "seconds": 0.3,
+  "seed": 2843733299
+}

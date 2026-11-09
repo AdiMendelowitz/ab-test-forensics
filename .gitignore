@@ -11,6 +11,11 @@ results/**
 !results/*/oc_*.csv
 !results/*/oc_meta.json
 !results/*/oc_sweep_meta.json
+# Case 01 rollout (staged-rollout extension): summary tables and run metadata are tracked
+!results/*/rollout/
+!results/*/rollout/oc_*.csv
+!results/*/rollout/oc_*.json
+!results/*/rollout/run_*.csv
 !results/case02/large_variant_feasibility/
 !results/case02/large_variant_feasibility/*
 
