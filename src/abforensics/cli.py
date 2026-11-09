@@ -13,7 +13,11 @@ from pathlib import Path
 import yaml
 
 COMMANDS = ("simulate", "run", "oc")
-CASES = {"case01": "01_lost_logs_found_lift", "case02": "02_metric_that_told_two_stories"}
+CASES = {
+    "case01": "01_lost_logs_found_lift",
+    "case01-rollout": "01_lost_logs_found_lift/rollout",
+    "case02": "02_metric_that_told_two_stories",
+}
 
 
 def repo_root() -> Path:
@@ -37,6 +41,10 @@ def cmd_simulate(root: Path, case: str, seed: int | None, *, synthetic: bool = F
         return 2
     if case == "case02":
         return _cmd_simulate_case02(root, case, seed, synthetic=synthetic)
+    if case == "case01-rollout":
+        from abforensics.simulation import rollout_commands
+
+        return rollout_commands.cmd_simulate(root, seed)
     from abforensics.simulation.assembly_incident import (
         simulate_assembly_experiment,
         write_case_data,
@@ -59,6 +67,10 @@ def cmd_run(root: Path, case: str) -> int:
     """Execute the case notebook headless, in place, so the committed copy carries outputs."""
     import subprocess
 
+    if case == "case01-rollout":
+        from abforensics.simulation import rollout_commands
+
+        return rollout_commands.cmd_run(root)
     nb = root / "case_studies" / CASES[case] / "analysis.ipynb"
     if not nb.exists():
         raise SystemExit(f"notebook not found: {nb}")
@@ -208,6 +220,10 @@ def cmd_oc(
     is checked between units, after at least one unit has been computed in the invocation, so
     every invocation makes progress and a run can overshoot the budget by one unit.
     """
+    if case == "case01-rollout":
+        from abforensics.simulation import rollout_commands
+
+        return rollout_commands.cmd_oc(root, replicates, seed)
     if case == "case02":
         return _cmd_oc_case02(
             root,

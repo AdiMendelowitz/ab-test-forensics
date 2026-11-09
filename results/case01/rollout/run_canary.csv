@@ -1,0 +1,4 @@
+stage,routing_p,logged_new_station,logged_total,z_squared,flags
+1,0.01,1204,118910,0.1885901314,False
+2,0.1,11707,118927,3.221816745,False
+3,0.5,119292,238037,1.256985259,False
