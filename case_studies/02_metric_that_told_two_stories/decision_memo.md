@@ -4,7 +4,7 @@ To: Feed product lead
 From: Experimentation analyst
 Date: 11 October 2026, revised 16 November 2026
 
-No real experiment ran: this memo reads one selected draw of a simulation built on EB-NeRD reading data. Recommendation: the draw does not meet the engagement success criterion (row 5 of the rule), so the rule's output is do not ship the ranking change as an engagement gain; decide it on its own efficiency rule if the serving-cost case matters.
+No real experiment ran: this memo reads one selected draw of a simulation built on EB-NeRD reading data. Recommendation: the draw does not meet the engagement success criterion (row 5 of the rule, where the gain is not shown to exceed the +0.5% floor), so the rule's output is do not ship the ranking change as an engagement gain; decide it on its own efficiency rule if the serving-cost case matters.
 
 What the experiment was meant to decide: whether the new ranking model raises engagement enough to justify its serving cost. The rule, fixed before the illustrative draw was selected, ships if the lower bound of the 95% interval on relative lift in clicks per eligible user exceeds +0.5% and the negative-feedback guardrail passes its +5% margin.
 
@@ -14,7 +14,7 @@ What we found: the dashboard divides all clicks by all impressions and treats ea
 
 What the corrected analysis says: with a user-level interval, click-through rate is still up 5.37% (95% interval +4.93% to +5.81%) and that statement concerns impression-weighted click-through. Clicks per eligible user, the quantity this decision reads, changed from 15.43 to 15.40 (−0.21%, 95% interval −1.53% to +1.12%), so the rule reaches row 5: the engagement gain is not shown to exceed the +0.5% floor. The simulated negative-feedback guardrail passes (−9.82%, interval −11.79% to −7.81%).
 
-Why the recommendation follows: the rule is written on clicks per eligible user, and its lower bound (−1.53%) sits below the +0.5% floor. One caveat applies to the metric and is not an open decision blocker under row 2 of the rule: the click-through rate and the mean user-level rate have a post-treatment denominator, so neither supports an engagement claim, and the decision reads clicks per eligible user, which does not.
+Why the recommendation follows: the rule is written on clicks per eligible user, and its lower bound (−1.53%) sits below the +0.5% floor. One caveat applies to the metric and is not an open decision blocker under row 2 of the rule, the row that stops the decision while any blocker is open: the click-through rate and the mean user-level rate have a post-treatment denominator, so neither supports an engagement claim, and the decision reads clicks per eligible user, which does not.
 
 What would change the decision: an experiment sized for the question, in which the lower bound on clicks per eligible user exceeds +0.5% with the guardrail passing; 57,600 resampled draws per arm give 0.81 and 0.82 probability of that outcome (two runs of B = 2,000, MC SE 0.0087 and 0.0086) if the true gain is +2.5%, measured by resampling the 15,143-user base with replacement (3.80 draws per user per arm), so it describes the harness and gives no sizing for real traffic. An inconclusive result at that size is no evidence of no effect for a +1.0% gain, where analytic power against the floor is 0.110. A separate decision on serving cost per impression would need its own floor and rule.
 
