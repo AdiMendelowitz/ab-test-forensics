@@ -18,7 +18,7 @@
 <p align="center">
   <img src="case_studies/01_lost_logs_found_lift/figures/fig3_naive_vs_itt.png" width="820" alt="Case 01: the intention-to-treat relative lift on routed products is +1.9% (95% interval -2.2% to +6.1%), while the relative lift among products with a logged scan, read on complete data, is +5.5% (+0.96% to +10.3%), against a +1.0% ship threshold.">
 </p>
-<p align="center"><sub>Case 01, single committed run (seed 20260928), complete data: the same experiment read on two populations.</sub></p>
+<p align="center"><sub>Case 01, a simulated experiment, one selected illustrative run (seed 20260928), complete data: the same experiment read on two populations.</sub></p>
 
 Reproducible case studies in how online experiments produce the wrong decision, and how I suggest handling it.
 
@@ -71,7 +71,7 @@ A user-randomised, event-analysed ratio metric with heavy-tailed exposure and a 
 
 Planned: carryover under autocorrelated outcomes in a time-block randomised experiment on real hourly load data, analysed with block-aware methods and a washout, with bias and power measured across block lengths.
 
-Two claims run through the cases: the analysed population must be the randomised one (Case 01), and the variance of an estimate must be computed at the unit that was randomised, whatever unit was measured (Case 02, and Case 03 once built).
+Two claims run through the cases: the analysed population must be defined before the data are read, and any selection made after randomisation must not break the comparability of the arms (Case 01), and the variance of an estimate must be computed at the unit that was randomised, whatever unit was measured (Case 02, and Case 03 once built).
 
 <details>
 <summary><strong>Phase 2 roadmap</strong></summary>
@@ -114,7 +114,7 @@ Requires git and [uv](https://docs.astral.sh/uv/); uv provides the Python versio
 ```bash
 git clone https://github.com/AdiMendelowitz/ab-test-forensics.git
 cd ab-test-forensics
-uv sync --group dev
+uv sync --locked --group dev
 uv run pytest                 # fast suite, under a minute on a laptop
 uv run pytest -m slow         # coverage, bias and seed-rule simulations, about three minutes on two cores
 uv run abf simulate case01    # regenerate the case's data from its config and seed
