@@ -2,19 +2,28 @@
 
 All entries precede the first release (0.1.0). Dates are commit dates.
 
+## 16 November 2026
+
+- Docs: the Case 01 memo and README state that the scan repair is checked against the routing records; Case 02 README, decision memo and data contract review fixes (run times cited from tracked run metadata, Monte Carlo errors for scenario A, missingness wording); root README wording and `uv sync --locked` in the quick start (754a59f).
+
+## 9 November 2026
+
+- Case 01 rollout: staged-rollout generator, estimators, canary, CLI, tests and committed outputs (e42b07d).
+- Case 01 and Case 02 READMEs: power table, wording fixes and the SHA-256 of the large-variant evidence; CHANGELOG bullets (6d115d9).
+
 ## 26 October 2026
 
 - Case 01 README: scan parity is checked against the routing records; an A/A test alone does not confirm it (adec2c3).
-- K23: Case 02 notebook builder tracked with a test; public-reader check in pre-commit and CI (f20746a).
+- Case 02 notebook builder tracked with a test; public-reader check in pre-commit and CI (f20746a).
 - Case 01 README: drop the unsourced runtime sentence (3d60522).
-- CHANGELOG: commit hashes on every bullet; sections for 25 and 26 October; 23 October re-dated to its merge date (M6) (2254c00).
-- Case 02: commit the large-variant evidence bundle that large_variant_check.md cites (M12) (ec556f9).
-- Case 02: large-variant feasibility check from the 2026-10-14 run (M12) (3264315).
+- CHANGELOG: commit hashes on every bullet; sections for 25 and 26 October; 23 October re-dated to its merge date (2254c00).
+- Case 02: commit the large-variant evidence bundle that large_variant_check.md cites (ec556f9).
+- Case 02: large-variant feasibility check from the 2026-10-14 run (3264315).
 
 ## 25 October 2026
 
 - README: tagline states how the issues are handled, not who handles them (a2d18d4).
-- Case 02 sweeps: population mark from config, missing-key ValueError, no-file check (RAID R15 a to c) (84106f4).
+- Case 02 sweeps: population mark from config, missing-key ValueError, no-file check (84106f4).
 - README: link the Case 01 post, correct the MC SE of the rescaled ship rate to 0.6, CI token read-only (ff9e856).
 
 ## 24 October 2026
