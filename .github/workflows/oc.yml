@@ -1,0 +1,97 @@
+name: oc
+
+on:
+  workflow_dispatch:
+    inputs:
+      case:
+        description: "Case passed to abf oc (case02 is absent: abf oc case02 rejects --max-seconds)"
+        required: true
+        type: choice
+        options:
+          - case01
+          - case01-rollout
+      replicates:
+        description: "Replicates B, an integer from 2 to 5000"
+        required: true
+        type: string
+        default: "2"
+      max_seconds:
+        description: "Stop starting new units after this many seconds, an integer from 60 to 20000"
+        required: true
+        type: string
+        default: "600"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oc-${{ inputs.case }}
+  cancel-in-progress: false
+
+jobs:
+  oc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.14"
+      - run: uv sync --locked --group dev
+      - name: Validate inputs
+        env:
+          CASE: ${{ inputs.case }}
+          B: ${{ inputs.replicates }}
+          MAXS: ${{ inputs.max_seconds }}
+        run: |
+          set -eu
+          case "$CASE" in
+            case01|case01-rollout) ;;
+            *) echo "refused: case '$CASE' is not an allowed case"; exit 1 ;;
+          esac
+          check_int() {
+            name="$1"; value="$2"; low="$3"; high="$4"
+            case "$value" in
+              ''|*[!0-9]*) echo "refused: $name must be digits only"; exit 1 ;;
+            esac
+            if [ "${#value}" -gt 5 ]; then echo "refused: $name has more than 5 digits"; exit 1; fi
+            if [ "$value" -lt "$low" ] || [ "$value" -gt "$high" ]; then
+              echo "refused: $name=$value is outside $low to $high"; exit 1
+            fi
+            echo "ok: $name=$value is within $low to $high"
+          }
+          check_int replicates "$B" 2 5000
+          check_int max_seconds "$MAXS" 60 20000
+      - name: Run abf oc
+        env:
+          CASE: ${{ inputs.case }}
+          B: ${{ inputs.replicates }}
+          MAXS: ${{ inputs.max_seconds }}
+        run: uv run abf oc "$CASE" --replicates "$B" --max-seconds "$MAXS"
+      - name: Hash the changed results files
+        id: hash
+        if: always()
+        run: |
+          set -eu
+          git ls-files --modified --others --exclude-standard -- results > oc-changed.txt
+          : > oc-artefacts.sha256
+          : > oc-upload.txt
+          while IFS= read -r f; do
+            if [ -f "$f" ]; then
+              sha256sum "$f" >> oc-artefacts.sha256
+              printf '%s\n' "$f" >> oc-upload.txt
+            fi
+          done < oc-changed.txt
+          printf '%s\n' oc-artefacts.sha256 >> oc-upload.txt
+          cat oc-artefacts.sha256
+          {
+            echo 'files<<OC_EOF'
+            cat oc-upload.txt
+            echo 'OC_EOF'
+          } >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: oc-${{ inputs.case }}-${{ github.run_id }}
+          path: ${{ steps.hash.outputs.files }}
+          if-no-files-found: error
