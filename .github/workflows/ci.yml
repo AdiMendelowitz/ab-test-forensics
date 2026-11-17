@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         python-version: ["3.12", "3.13", "3.14"]
@@ -31,13 +31,25 @@ jobs:
       - run: uv run python scripts/public_reader_check.py
       - run: uv run pytest
 
+  canary:
+    # Ubuntu 26.04 canary: non-blocking; it warns before the image pinned by the other jobs is retired.
+    runs-on: ubuntu-26.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.14"
+      - run: uv sync --locked --group dev
+      - run: uv run pytest
+
   slow:
     # Coverage, bias and seed-rule tests (about three minutes on two cores): weekly, on demand and on every
     # pull request.
     if: >-
       github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
       github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v7

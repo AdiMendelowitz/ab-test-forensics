@@ -12,6 +12,7 @@ Across 400 A/A splits of the real users the naive test rejects a true null at no
 </details>
 
 Two-minute version, in the fictional experiment's own terms: "Users were randomised and impressions were counted. The user-level interval was about 1.5 times as wide as the dashboard interval, and the correction did not change the decision: clicks per user were not shown to rise, while the rate rose as impressions per user fell."
+
 The ratio of 1.5 rests on three measurements that differ slightly. The delta-to-naive standard-error ratio is 1.48 across 400 A/A splits of the base population (about 7,570 users per arm), it is 1.49 on the committed draw, and scenario A's naive Type I error of 16.5% at 57,600 per arm (MC SE 0.8 points) implies an effective factor of 1.41 (1.36 to 1.47 over the Monte Carlo interval). This 1.41 is a different quantity from the factor of 1.41 by which the guardrail's standard error was overstated in the sizing input.
 
 Inverting a rejection rate through the normal quantile gives a smaller ratio than the measured 1.48 in both cases. The base's 16.8% (Monte Carlo SE 1.9 points) implies 1.42, with a Clopper-Pearson interval of 1.30 to 1.56 that contains 1.48. Scenario A's 16.5% implies 1.41, with an interval of 1.36 to 1.47 that lies below 1.48: with a standard-normal delta statistic, a ratio of 1.48 would give a naive Type I error of 18.5%, above scenario A's Clopper-Pearson 95% interval of 14.9% to 18.2%.
