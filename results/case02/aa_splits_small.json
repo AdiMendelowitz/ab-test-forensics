@@ -1,0 +1,41 @@
+{
+  "aa_splits": {
+    "users": 15143,
+    "users_per_arm_mean": 7571.5,
+    "splits": 400,
+    "seed": 20260929,
+    "nominal_level": 0.05,
+    "naive_rejections": 67,
+    "naive_reject_rate": 0.1675,
+    "naive_reject_rate_mc_se": 0.018671083926756905,
+    "delta_method_rejections": 18,
+    "delta_method_reject_rate": 0.045,
+    "e1_welch_rejections": 22,
+    "e1_welch_reject_rate": 0.055,
+    "mc_se_at_nominal_printed": 0.011,
+    "se_ratio_median": 1.48,
+    "se_ratio_q25": 1.48,
+    "se_ratio_q75": 1.48
+  },
+  "printed": {
+    "naive_rate": "0.168",
+    "delta_method_rate": "0.045",
+    "e1_welch_rate": "0.055",
+    "verdict": "holds (ratio >= 1.4)"
+  },
+  "provenance": {
+    "command": "uv run python scripts/aa_splits_case02.py",
+    "inner_command": "python results/case02/large_variant_feasibility/ebnerd_feasibility.py data/raw/ebnerd_small",
+    "script": "results/case02/large_variant_feasibility/ebnerd_feasibility.py",
+    "script_md5": "2053e27eb0cf39286fef69490e26e02c",
+    "data": {
+      "train/behaviors.parquet": "5e6392d5c3d27994213fb834f8149528",
+      "train/history.parquet": "a8d50562d0f817178bf6ba308e87ad14",
+      "articles.parquet": "bb271df300a391040e9e59d2a224ec35"
+    },
+    "python": "3.14.0",
+    "numpy": "2.5.5",
+    "pandas": "3.1.1",
+    "scipy": "1.18.1"
+  }
+}
