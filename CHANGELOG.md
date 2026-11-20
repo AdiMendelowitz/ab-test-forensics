@@ -2,6 +2,10 @@
 
 All entries precede the first release (0.1.0). Dates are commit dates.
 
+## 19 November 2026
+
+- Cases 01 and 02: committed sources for the last decision-memo numbers: `scripts/power_table_case01.py --itt` writes `results/case01/power_itt_case01.csv` (per-arm size at the simulated ITT lift) and `scripts/aa_splits_case02.py` writes `results/case02/aa_splits_small.json` (400 A/A splits of the 15,143 users) (c688fe8).
+
 ## 16 November 2026
 
 - Docs: the Case 01 memo and README state that the scan repair is checked against the routing records; Case 02 README, decision memo and data contract review fixes (run times cited from tracked run metadata, Monte Carlo errors for scenario A, missingness wording); root README wording and `uv sync --locked` in the quick start (754a59f).
