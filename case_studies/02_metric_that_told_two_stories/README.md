@@ -210,6 +210,32 @@ The notebook is generated: `scripts/build_case02_notebook.py` writes `analysis.i
 
 `abf simulate case02` needs the EB-NeRD small download under `data/raw/ebnerd_small`; `abf simulate case02 --synthetic` runs without it. `abf oc case02` and `abf oc case02 --sweeps` run in one uninterrupted pass and write their tables to `results/case02/`; unlike Case 01 they keep no unit cache, do not resume, and reject `--max-seconds`.
 
+## Clean-clone test
+
+On 2026-11-22 the five commands above ran from a fresh clone of commit cda4ff0 on Windows 11, and the first four ran from a fresh clone in WSL2 on the same machine, each clone with its own uv environment and a copy of the EB-NeRD small download. The first Windows attempt was aborted before any verdict when its window was closed, and the one retry the change record allows ran to completion. Each system was judged twice.
+
+- Verdict 1 is the byte test registered on 2026-11-17 (CR-31): every tracked output equals the committed file byte for byte, apart from listed timing and version fields, the notebook's elapsed-time lines and the timing panel of the operating-characteristics figure, which is checked by eye.
+- Verdict 2 is a numerical-consistency test added on 2026-11-21 (CR-34), after a pilot on 2026-11-19 had failed verdict 1 in WSL2. Decision fields (replicate estimates, rule rows, guardrail verdicts, sample sizes, coverage and rejection rates) must match exactly, and the other floating-point values must agree within a relative 1e-9 on stated scales. Verdict 2 was written after that evidence.
+
+| System | Verdict 1 (registered 2026-11-17) | Verdict 2 (added 2026-11-21) |
+|---|---|---|
+| Windows 11 | PASS. The operating-characteristics figure changed in its timing panel only, checked by eye on 2026-11-22 | PASS, 0 rows failed, with the same figure check |
+| WSL2 | FAIL under the criterion registered on 2026-11-17: 7 of 8 changed files fail | PASS, 0 rows failed, against the committed files and, for the two untracked tables, against the Windows clone |
+
+In WSL2, figures 1 to 3 differ in bytes with 0 pixels changed, and two manifest keys differ (a relative lift in its last digits and the hash of the truth table, which verdict 2 recomputes). The run's `oc_meta.json` records Python 3.14.4 where the committed one records 3.14.0. On both systems the locked environment installed numpy 2.5.5 and pandas 3.1.1, where the committed file records 2.5.3 and 3.0.6, which verdict 1 allows as version fields. `oc_scenarios.csv` and `oc_truths.csv` differ by floating-point noise of at most a relative 1.22e-11 and 4.79e-15, which verdict 1 counts as failures. The clean-clone clause of the condition for publishing this case (milestone M15) is met as amended by CR-34 after the evidence. It is not a pass of the condition registered on 2026-11-17, because WSL2 fails verdict 1.
+
+Limits of this test:
+
+- It is a seeded replay with fixed replicate seeds. The tested commit has the same Case 02 code path as the pilot's commit, and the run reproduced the pilot's largest differences, so it tests the frozen judges and the reproducibility of the pipeline. It gives no test of the choice of criterion.
+- No independent error budget is claimed for 1e-9.
+- Verdict 2 does not detect a change smaller than 1e-9 on the unit scale for p-values and SRM p-values, or smaller than 1e-9 times the row scale for interval ends.
+- A value that is exactly 0.0 on one system and a rounding residue on the other fails verdict 2 by design, as does a one-ULP difference in an exact field. In the pilot no 0.0 cell differed, and 0 of 73,000 estimate cells differed.
+- Pixel identity is not byte identity.
+- The decision-memo check (54 matched, 6 allowed, 0 unmatched) is not exhaustive equivalence.
+- The sweeps step was not reproduced on Linux.
+- The origin of the floating-point differences is not localised.
+- The Windows reference of the WSL2 leg is pinned only through Windows verdict 1.
+
 ## Sources
 
 - Deng, Knoblich, Lu. Applying the Delta Method in Metric Analytics. KDD 2018. Supports the E2 estimator, a ratio of arm sums with a user-level delta-method variance.
