@@ -115,7 +115,7 @@ The harness runs B = 2,000 replicates per scenario at 57,600 draws per arm (scen
 | C at 52,500 | 0 | 0.025 | Sizing on E1 alone | Full ship rule fires in 0.7575 (MC SE 0.0096) |
 | D, leaked tier | 0.15 | 0.025 | Tier built on split-contaminated totals | E1 truth −1.29%; row 5 in 0.5175 and row 3 in 0.4825 (MC SE 0.0112 for both) |
 
-Sizing. The size is 57,600 resampled draws per arm (users drawn with replacement from the 15,143-user base), set so that the full ship rule (E1's lower bound above the +0.5% floor and the guardrail passing) fires with probability 0.80 under the simulated +2.5% gain. The analytic joint-rule sizing gave 64,100 per arm and predicted 0.800, assuming the E1 bound and the guardrail verdict are independent; at 57,600 per arm the measured guardrail pass rate 0.992 times the E1 rate 0.822 gives 0.815 against the measured joint rate 0.814, which supports that assumption. The harness measured 0.8535 at 64,100, outside the pre-specified tolerance of 0.80 ± 0.025, because the guardrail's standard error was overstated by a factor of 1.41 in the input that sizing used. Interpolation between the measured rates at 52,500 (0.7575) and 64,100 (0.8535) pointed to about 57,635 per arm. 57,600 was run as the single candidate and measured 0.814 (MC SE 0.0087; 95% interval 0.796 to 0.831), inside the tolerance. That acceptance check and the full run's scenario C row share the same seed, so the second does not confirm the first independently. A second run at oc seed 20261011, a seed not used before, measured 0.8215 (MC SE 0.0086), inside the tolerance. At a true lift of +1.0%, analytic power against the +0.5% floor is 0.110 at 57,600 per arm, so an inconclusive E1 is no evidence of no effect. The size table (B = 1,000) prints 0.754 at 52,500 and 0.858 at 64,100; the B = 2,000 confirmation run at oc seed 20261011 is tracked in `results/case02/oc_sizing_confirm.csv`, and the other B = 2,000 sizing runs are not in a tracked table.
+Sizing. The size is 57,600 resampled draws per arm (users drawn with replacement from the 15,143-user base), set so that the full ship rule (E1's lower bound above the +0.5% floor and the guardrail passing) fires with probability 0.80 under the simulated +2.5% gain. The analytic joint-rule sizing gave 64,100 per arm and predicted 0.800, assuming the E1 bound and the guardrail verdict are independent; at 57,600 per arm the measured guardrail pass rate 0.992 times the E1 rate 0.822 gives 0.815 against the measured joint rate 0.814. Because the guardrail passes in 1,984 of 2,000 replicates, the joint count can only lie between 1,644 + 1,984 − 2,000 = 1,628 and 1,644 whatever the dependence, so the agreement is close by construction and says little about that assumption. The measured joint count is 1,628, the lowest value that range allows: in all 16 replicates where the guardrail did not pass, E1 was above the floor. The harness measured 0.8535 at 64,100, outside the pre-specified tolerance of 0.80 ± 0.025, because the guardrail's standard error was overstated by a factor of 1.41 in the input that sizing used. Interpolation between the measured rates at 52,500 (0.7575) and 64,100 (0.8535) pointed to about 57,635 per arm. 57,600 was run as the single candidate and measured 0.814 (MC SE 0.0087; 95% interval 0.796 to 0.831), inside the tolerance. That acceptance check and the full run's scenario C row share the same seed, so the second does not confirm the first independently. A second run at oc seed 20261011, a seed not used before, measured 0.8215 (MC SE 0.0086), inside the tolerance. At a true lift of +1.0%, analytic power against the +0.5% floor is 0.110 at 57,600 per arm, so an inconclusive E1 is no evidence of no effect. The size table (B = 1,000) prints 0.754 at 52,500 and 0.858 at 64,100; the B = 2,000 confirmation run at oc seed 20261011 is tracked in `results/case02/oc_sizing_confirm.csv`, and the other B = 2,000 sizing runs are not in a tracked table.
 
 ### Sweeps
 
@@ -209,6 +209,32 @@ uv run abf oc case02 --sweeps
 The notebook is generated: `scripts/build_case02_notebook.py` writes `analysis.ipynb`, and `tests/unit/test_build_case02_notebook.py` fails if the committed notebook differs from what the builder writes. Case 01's notebook is the artefact itself and has no builder.
 
 `abf simulate case02` needs the EB-NeRD small download under `data/raw/ebnerd_small`; `abf simulate case02 --synthetic` runs without it. `abf oc case02` and `abf oc case02 --sweeps` run in one uninterrupted pass and write their tables to `results/case02/`; unlike Case 01 they keep no unit cache, do not resume, and reject `--max-seconds`.
+
+## Clean-clone test
+
+On 2026-11-22 the five commands above ran from a fresh clone of commit cda4ff0 on Windows 11, and the first four ran from a fresh clone in WSL2 on the same machine, each clone with its own uv environment and a copy of the EB-NeRD small download. The first Windows attempt was aborted before any verdict when its window was closed, and the one retry the change record allows ran to completion. Each system was judged twice.
+
+- Verdict 1 is the byte test registered on 2026-11-17 (CR-31): every tracked output equals the committed file byte for byte, apart from listed timing and version fields, the notebook's elapsed-time lines and the timing panel of the operating-characteristics figure, which is checked by eye.
+- Verdict 2 is a numerical-consistency test added on 2026-11-21 (CR-34), after a pilot on 2026-11-19 had failed verdict 1 in WSL2. Decision fields (replicate estimates, rule rows, guardrail verdicts, sample sizes, coverage and rejection rates) must match exactly, and the other floating-point values must agree within a relative 1e-9 on stated scales. Verdict 2 was written after that evidence.
+
+| System | Verdict 1 (registered 2026-11-17) | Verdict 2 (added 2026-11-21) |
+|---|---|---|
+| Windows 11 | PASS. The operating-characteristics figure changed in its timing panel only, checked by eye on 2026-11-22 | PASS, 0 rows failed, with the same figure check |
+| WSL2 | FAIL under the criterion registered on 2026-11-17: 7 of 8 changed files fail | PASS, 0 rows failed, against the committed files and, for the two untracked tables, against the Windows clone |
+
+In WSL2, figures 1 to 3 differ in bytes with 0 pixels changed, and two manifest keys differ (a relative lift in its last digits and the hash of the truth table, which verdict 2 recomputes). The run's `oc_meta.json` records Python 3.14.4 where the committed one records 3.14.0. On both systems the locked environment installed numpy 2.5.5 and pandas 3.1.1, where the committed file records 2.5.3 and 3.0.6, which verdict 1 allows as version fields. `oc_scenarios.csv` and `oc_truths.csv` differ by floating-point noise of at most a relative 1.22e-11 and 4.79e-15, which verdict 1 counts as failures. The clean-clone clause of the condition for publishing this case (milestone M15) is met as amended by CR-34 after the evidence. It is not a pass of the condition registered on 2026-11-17, because WSL2 fails verdict 1.
+
+Limits of this test:
+
+- It is a seeded replay with fixed replicate seeds. The tested commit has the same Case 02 code path as the pilot's commit, and the run reproduced the pilot's largest differences, so it tests the frozen judges and the reproducibility of the pipeline. It gives no test of the choice of criterion.
+- No independent error budget is claimed for 1e-9.
+- Verdict 2 does not detect a change smaller than 1e-9 on the unit scale for p-values and SRM p-values, or smaller than 1e-9 times the row scale for interval ends.
+- A value that is exactly 0.0 on one system and a rounding residue on the other fails verdict 2 by design, as does a one-ULP difference in an exact field. In the pilot no 0.0 cell differed, and 0 of 73,000 estimate cells differed.
+- Pixel identity is not byte identity.
+- The decision-memo check (54 matched, 6 allowed, 0 unmatched) is not exhaustive equivalence.
+- The sweeps step was not reproduced on Linux.
+- The origin of the floating-point differences is not localised.
+- The Windows reference of the WSL2 leg is pinned only through Windows verdict 1.
 
 ## Sources
 
