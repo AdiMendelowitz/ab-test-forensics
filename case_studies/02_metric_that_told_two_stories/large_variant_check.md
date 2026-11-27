@@ -6,7 +6,7 @@ Does the headline mechanism (delta-method SE about 1.5 times the naive SE, `READ
 
 ## 2 What was run
 
-The archived script (PY), run unmodified (`TJ:115`) on the `train` split (`PY:29`) of the large variant by Codex card K5 on 14 October 2026 (`TJ:59`), commit 4fb21ff (`TJ:53`), Chrome closed (`TJ:91`), PyCharm open (`TJ:97`). The archived script is a byte-identical copy of the file as run. Data: 788,090 users (`LOG:4`). A/A: 400 splits (`PY:76`), per-user Bernoulli(0.5) assignment (`PY:78`), seed 20260929 (`PY:74`). SE ratio = se_delta / se_naive (`PY:83-84`), median and IQR reported (`PY:89`); naive test = pooled-proportion z, rejecting at |z| > 1.96 (`PY:81-82`, `PY:85`). Timing run: `abf simulate case02`, 115,200 draws (`TJ:83`), seed 20261002 (`TJ:77`).
+The archived script (PY), run unmodified (`TJ:115`) on the `train` split (`PY:29`) of the large variant by Codex card K5 on 14 October 2026 (`TJ:59`), commit 7741a27 (`TJ:53`), Chrome closed (`TJ:91`), PyCharm open (`TJ:97`). The archived script is a byte-identical copy of the file as run. Data: 788,090 users (`LOG:4`). A/A: 400 splits (`PY:76`), per-user Bernoulli(0.5) assignment (`PY:78`), seed 20260929 (`PY:74`). SE ratio = se_delta / se_naive (`PY:83-84`), median and IQR reported (`PY:89`); naive test = pooled-proportion z, rejecting at |z| > 1.96 (`PY:81-82`, `PY:85`). Timing run: `abf simulate case02`, 115,200 draws (`TJ:83`), seed 20261002 (`TJ:77`).
 
 ## 3 Results
 

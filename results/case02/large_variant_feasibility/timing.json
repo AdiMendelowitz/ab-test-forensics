@@ -50,9 +50,9 @@
     "k5_line": 93
   },
   "commit": {
-    "value": "4fb21ff",
+    "value": "7741a27",
     "unit": "git commit (short hash)",
-    "source_text": "4fb21ff Case 02 data contract: keep the three-fact list intact around the age count",
+    "source_text": "7741a27 Case 02 data contract: keep the three-fact list intact around the age count",
     "k5_line": 40
   },
   "date": {
