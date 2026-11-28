@@ -11,7 +11,7 @@
 <p align="center">
   <a href="case_studies/01_lost_logs_found_lift/README.md">Read the Case 01 investigation</a> ·
   <a href="case_studies/01_lost_logs_found_lift/decision_memo.md">Read the one-page decision memo</a> ·
-  <a href="https://blog.adimendelowitz.dev/ab-test-forensics/lost-logs-found-lift-part-1.html">Read the Case 01 blog post</a> ·
+  Read the Case 01 blog posts: <a href="https://blog.adimendelowitz.dev/ab-test-forensics/lost-logs-found-lift-part-1.html">part I</a>, <a href="https://blog.adimendelowitz.dev/ab-test-forensics/lost-logs-found-lift-part-2.html">part II</a>, <a href="https://blog.adimendelowitz.dev/ab-test-forensics/lost-logs-found-lift-part-3.html">part III</a> ·
   <a href="#quick-start">Run it locally</a>
 </p>
 
@@ -59,7 +59,7 @@ Case 01 is told as an assembly line: products, two stations and a faulty scanner
 </p>
 <p align="center"><sub>Mechanism illustration: missing scan records change which products appear in the dashboard comparison, while routing itself is unaffected.</sub></p>
 
-[Read the investigation](case_studies/01_lost_logs_found_lift/README.md) · [Read the decision memo](case_studies/01_lost_logs_found_lift/decision_memo.md)
+[Read the investigation](case_studies/01_lost_logs_found_lift/README.md) · [Read the decision memo](case_studies/01_lost_logs_found_lift/decision_memo.md) · [Read the staged-rollout analysis](case_studies/01_lost_logs_found_lift/rollout/README.md)
 
 ### 02 · The metric that told two stories
 
